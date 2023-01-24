@@ -54,5 +54,25 @@ def Multilevel(data, ite=1, prop=0.8, KNN=10, KNN_UNCOARSE=10,
         
         else:
             Results(ite), trainedNetwork(ite), options(ite), ~, ~ = neuarlNetwork()
-            
+
+    # Save results into an excel file
+    formatFilename = "Results/%s/Multilevel_%depochs%dRefine%sBorderPoints%dNeighbors%dLoss%s%smaxIte%d.xlsx"
+    filename = formatFilename % (dataName, Multilevel, epochs, refineMethod, numBorderPoints, KNN_UNCOARSE, loss, label, maxite)
+
+    resultsTable = pd.DataFrame({
+        'GMean': Results.GMean, 
+        'Acc': Results.Acc, 
+        'Sen': Results.Sen,  
+        'Spec': Results.Spec, 
+        'stdGMean': Results.stdGMean, 
+        'stdAcc': Results.stdAcc, 
+        'stdSen': Results.stdSen,  
+        'stdSpec': Results.stdSpec, 
+        'Time (sec)': averageTime, 
+        'Depth': depth, 
+        'Refined': Results.refined
+    }, columns=['GMean','Acc', 'Sen', 'Spec','stdGMean','stdAcc','stdSen', 'stdSpec', 'Time (sec)', 'Depth', 'Refined'])
+
+    resultsTable.to_excel(filename, sheet_name='Sheet1', index=False)
+
 
