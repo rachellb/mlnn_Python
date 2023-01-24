@@ -43,11 +43,16 @@ def Multilevel(data, ite=1, prop=0.8, KNN=10, KNN_UNCOARSE=10,
 
         Pweight = 1/len(Ptraindata)                      
         Nweight = 1/len(Ntraindata) 
-
+        
+        Best = {} # Will contain best results found. 
         if multilevel == 1:
             # Create the KNN graph that will be used in multilevel learning
             nresult, ndistances, NAD1 = NearestNeighborSearch(Ntraindata, KNN)
             presult, pdistances, PAD1 = NearestNeighborSearch(Ptraindata, KNN)
 
-            Results,posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD()
+            Results,posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD(Best)
+        
+        else:
+            Results(ite), trainedNetwork(ite), options(ite), ~, ~ = neuarlNetwork()
+            
 

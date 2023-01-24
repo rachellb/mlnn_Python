@@ -1,7 +1,7 @@
 import coarsen
 import pandas as pd
 
-def MLD(traindata, train_l, testdata, test_l, NfineData, NfineLbl, NcoarseData, NcoarseLbl, PfineData, PfineLbl, PcoarseData, PcoarseLbl, PAD, Upperlim, Pweight, Nweight,KNN,level,nresult1,presult1,nresult,presult,U_trainsize,Model_Selec,Imb_size,coarse,epochs, Multilevel,MoS_UB,Level_size, numBorderPoints,loss, refineMethod, patience_level, weights):
+def MLD(traindata, train_l, testdata, test_l, NfineData, NfineLbl, NcoarseData, NcoarseLbl, PfineData, PfineLbl, PcoarseData, PcoarseLbl, PAD, Upperlim, Pweight, Nweight,n_neighbors,level,nresult1,presult1,nresult,presult,U_trainsize,Model_Selec,Imb_size,coarse,epochs, Multilevel,MoS_UB,Level_size, numBorderPoints,loss, refineMethod, patience_level, weights, Best):
     ''' A recursive function that iteratively coarsens the data, 
     trains the network once we hit the coarsest level, then begins refinement.
        Inputs:
@@ -22,7 +22,7 @@ def MLD(traindata, train_l, testdata, test_l, NfineData, NfineLbl, NcoarseData, 
             <Upperlim>: Maximum size of coarsest level data
             <Pweight>: Weights for positive data, if desired
             <Nweight>: Weights for negative data, if desired
-            <KNN>: How many nearest neighbors to select
+            <n_neighbors>: How many nearest neighbors to select
             <level>: Which level of refinement we are at
             <nresult1>: Nearest neighbors of negative data at this refinement level
             <presult1>: Nearest neighbors of positive data at this refinement level
@@ -30,17 +30,17 @@ def MLD(traindata, train_l, testdata, test_l, NfineData, NfineLbl, NcoarseData, 
             <presult>: Nearest neighbors of positive data at previous refinement level
             <U_trainsize>:
             <Model_Selec>:
-            <Imb_size>:
+            <Imb_size>: Maximum size of positive and negative data individually 
             <coarse>: Binary variable indicating if we have hit the coarsest level. 
             <epochs>: Number of epochs to train neural network for
-            <Multilevel>:
+            <Multilevel>: Whether or not we're doing the multilevel version of the code. 
             <Level_size>: What level we're at
             <numBorderPoints>: How many border points (for each class) to select during refinement
             <loss>: Which type of loss function to use
             <refineMethod>: Which refinement method to use, "flip" or "border" 
             <patience_level>: How many levels to tolerate no improvement before stopping refinement
             <weights>: Neural Network weights
-   
+            <Best>: Dictionary of best results found so far
        Outputs: 
            <Results>: The results of the model at this level
            <posBorderData>: Positive Border points 
@@ -48,7 +48,7 @@ def MLD(traindata, train_l, testdata, test_l, NfineData, NfineLbl, NcoarseData, 
            <Level_size>: 
            <trainedNetwork>: The trained neural network for this level
            <options>: Neural network hyperparameters
-           <Best>: Best results found so far
+           <Best>: Dictionary of best results found so far
            <flag>: Flag for ceasing refinement if results have not improved in given number of levels
            <Level_results>: Results per refinement level
    '''
@@ -62,6 +62,7 @@ def MLD(traindata, train_l, testdata, test_l, NfineData, NfineLbl, NcoarseData, 
         Results, trainedNetwork, options, posBorderData, negBorderData = neuralNetwork(traindata,train_l,testdata,test_l,loss,epochs,weights,Multilevel, numBorderPoints, refineMethod)
         coarse = 0 # Training of coarsest section is done.
 
+        # Results of best trained neural network so far. 
         Best["level"] = level+1
         Best["GMean"] = Results["GMean"]
         Best["Acc"] = Results["Acc"]
