@@ -25,7 +25,7 @@ def coarsen(IndicatorMatrix, data, lbl, n_neighbors=10, metric='euclidean', T=0.
     '''
     
     R = findCoarseIndicies(IndicatorMatrix, T)
-    l = len(data, 1)
+    l = len(data)
     node = list(range(1,l+1)) # indices of all points in fine data
     Vhat = R.sort() # The sorted list of caorsened nodes
     Comp_Vhat = np.setxor1d(node,Vhat) # Return a list of all points that are not in their intersection

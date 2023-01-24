@@ -1,5 +1,5 @@
 import numpy as np
-from PyNNDescent import NNDescent
+from pynndescent  import NNDescent
 
 def NearestNeighborSearch(data, n_neighbors=10, metric='euclidean'):
     """

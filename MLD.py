@@ -1,5 +1,6 @@
-import coarsen
 import pandas as pd
+import coarsen
+import neuralNetwork
 
 def MLD(traindata, train_l, testdata, test_l, NfineData, NfineLbl, NcoarseData, NcoarseLbl, PfineData, PfineLbl, PcoarseData, PcoarseLbl, PAD, Upperlim, Pweight, Nweight,n_neighbors,level,nresult1,presult1,nresult,presult,U_trainsize,Model_Selec,Imb_size,coarse,epochs, Multilevel,MoS_UB,Level_size, numBorderPoints,loss, refineMethod, patience_level, weights, Best):
     ''' A recursive function that iteratively coarsens the data, 
@@ -91,5 +92,10 @@ def MLD(traindata, train_l, testdata, test_l, NfineData, NfineLbl, NcoarseData, 
         train_l = pd.concat(NcoarseLbl, PcoarseLbl)
         Pweight = 1/len(PcoarseLbl,1) 
         Nweight = 1/len(NcoarseLbl,1) 
+
+        # If the size of each dataset is considered small enough or no more meaningful coarsening
+        # can be performed, then this is the coarsest level of data. 
+        if ((len(NcoarseData) < Imb_size) & (len(PcoarseData) < Imb_size)) | (len(NcoarseData)==len(NfineData)):
+            coarse = 1
 
     return Results,posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results

@@ -1,7 +1,7 @@
 import pandas as pd
 import NearestNeighborSearch
 from sklearn.model_selection import train_test_split
-from sklearn.neighbors import NearestNeighbors
+import NeuralNetwork
 
 def Multilevel(data, ite=1, prop=0.8, KNN=10, KNN_UNCOARSE=10, 
     Upperlim=500, Imb_size=300, Model_Selec=1, numBorderPoints=10, 
@@ -53,7 +53,7 @@ def Multilevel(data, ite=1, prop=0.8, KNN=10, KNN_UNCOARSE=10,
             Results,posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD(Best)
         
         else:
-            Results(ite), trainedNetwork(ite), options(ite), ~, ~ = neuarlNetwork()
+            Results(ite), trainedNetwork(ite), options(ite), ~ , ~ = neuarlNetwork()
 
     # Save results into an excel file
     formatFilename = "Results/%s/Multilevel_%depochs%dRefine%sBorderPoints%dNeighbors%dLoss%s%smaxIte%d.xlsx"
