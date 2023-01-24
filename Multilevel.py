@@ -1,21 +1,21 @@
 import pandas as pd
 import NearestNeighborSearch
 from sklearn.model_selection import train_test_split
-import NeuralNetwork
+import MLD
+import neuralNetwork
 
-def Multilevel(data, ite=1, prop=0.8, KNN=10, KNN_UNCOARSE=10, 
+def Multilevel(data, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10,
     Upperlim=500, Imb_size=300, Model_Selec=1, numBorderPoints=10, 
     coarse=0, loss="cross", Level_size=1, refineMethod="border", 
     epochs=100, patience_level=2, weights=False, label=""):
     """
-    The main function. Takes data and trains either a multilevel or non-multilevel neural network
+    The main function. Takes data and trains either a multilevel or traditional neural network
 
     Inputs:
         data: The dataset
         ite: Number of iterations to average results over
         prop: Proportion of data to split into test/train  
-        KNN: Number of neighbors to use for coarsening
-        KNN_UNCOARSE: Number of neighbors to use for refinement
+        n_neighbors: Number of neighbors to use for coarsening
         Upperlim: Maximum size of data in each class for Training
         Imb_size: If the size of each class is less than Imb_size, then perform coarsening
         Model_Selec: Perform hyperparameter optimization (1=Yes, 0=No)
@@ -33,7 +33,7 @@ def Multilevel(data, ite=1, prop=0.8, KNN=10, KNN_UNCOARSE=10,
     Pdata = data[data["Label"] == 1]
     Ndata = data[data["Label"] == 2]
 
-    for iterations in range(1, ite+1):
+    for ite in range(1, max_ite+1):
 
         Ntrainlbl, Ntestlbl, Ptrainlbl, Ptestlbl = train_test_split(Ndata, Pdata, test_size=prop)
         Ntraindata = Ntrainlbl.drop(columns=["Label"])
@@ -47,17 +47,17 @@ def Multilevel(data, ite=1, prop=0.8, KNN=10, KNN_UNCOARSE=10,
         Best = {} # Will contain best results found. 
         if multilevel == 1:
             # Create the KNN graph that will be used in multilevel learning
-            nresult, ndistances, NAD1 = NearestNeighborSearch(Ntraindata, KNN)
-            presult, pdistances, PAD1 = NearestNeighborSearch(Ptraindata, KNN)
+            nresult, ndistances, NAD1 = NearestNeighborSearch(Ntraindata, n_neighbors)
+            presult, pdistances, PAD1 = NearestNeighborSearch(Ptraindata, n_neighbors)
 
             Results,posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD(Best)
         
         else:
-            Results(ite), trainedNetwork(ite), options(ite), ~ , ~ = neuarlNetwork()
+            Results[ite], trainedNetwork[ite], options[ite] = neuralNetwork(Ntestdata, Ptestdata)
 
     # Save results into an excel file
     formatFilename = "Results/%s/Multilevel_%depochs%dRefine%sBorderPoints%dNeighbors%dLoss%s%smaxIte%d.xlsx"
-    filename = formatFilename % (dataName, Multilevel, epochs, refineMethod, numBorderPoints, KNN_UNCOARSE, loss, label, maxite)
+    filename = formatFilename % (dataName, Multilevel, epochs, refineMethod, numBorderPoints, n_neighbors, loss, label, max_ite)
 
     resultsTable = pd.DataFrame({
         'GMean': Results.GMean, 
@@ -74,5 +74,3 @@ def Multilevel(data, ite=1, prop=0.8, KNN=10, KNN_UNCOARSE=10,
     }, columns=['GMean','Acc', 'Sen', 'Spec','stdGMean','stdAcc','stdSen', 'stdSpec', 'Time (sec)', 'Depth', 'Refined'])
 
     resultsTable.to_excel(filename, sheet_name='Sheet1', index=False)
-
-

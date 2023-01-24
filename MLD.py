@@ -60,6 +60,8 @@ def MLD(traindata, train_l, testdata, test_l, NfineData, NfineLbl, NcoarseData, 
     # begin training. 
     if DATA_size < Upperlim | coarse == 1:
         Level_size = level+1
+
+        # TODO: Make sure you've separated the validation data from the test data!
         Results, trainedNetwork, options, posBorderData, negBorderData = neuralNetwork(traindata,train_l,testdata,test_l,loss,epochs,weights,Multilevel, numBorderPoints, refineMethod)
         coarse = 0 # Training of coarsest section is done.
 
@@ -97,5 +99,7 @@ def MLD(traindata, train_l, testdata, test_l, NfineData, NfineLbl, NcoarseData, 
         # can be performed, then this is the coarsest level of data. 
         if ((len(NcoarseData) < Imb_size) & (len(PcoarseData) < Imb_size)) | (len(NcoarseData)==len(NfineData)):
             coarse = 1
+
+    
 
     return Results,posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results
