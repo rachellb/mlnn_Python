@@ -3,8 +3,11 @@ import NearestNeighborSearch
 from sklearn.model_selection import train_test_split
 import MLD
 import neuralNetwork
+import time
+import numpy as np
 
-def Multilevel(data, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10,
+
+def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10,
     Upperlim=500, Imb_size=300, Model_Selec=1, numBorderPoints=10, 
     coarse=0, loss="cross", Level_size=1, refineMethod="border", 
     epochs=100, patience_level=2, weights=False, label=""):
@@ -13,7 +16,8 @@ def Multilevel(data, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10,
 
     Inputs:
         data: The dataset
-        ite: Number of iterations to average results over
+        dataName: The name of dataset being used.
+        max_ite: Number of iterations to average results over
         prop: Proportion of data to split into test/train  
         n_neighbors: Number of neighbors to use for coarsening
         Upperlim: Maximum size of data in each class for Training
@@ -32,8 +36,10 @@ def Multilevel(data, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10,
 
     Pdata = data[data["Label"] == 1]
     Ndata = data[data["Label"] == 2]
-
-    for ite in range(1, max_ite+1):
+    Results = {}
+    totalTime = ()
+    for ite in range(1, max_ite+1): 
+        start = time.time()
 
         Ntrainlbl, Ntestlbl, Ptrainlbl, Ptestlbl = train_test_split(Ndata, Pdata, test_size=prop)
         Ntraindata = Ntrainlbl.drop(columns=["Label"])
@@ -50,11 +56,16 @@ def Multilevel(data, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10,
             nresult, ndistances, NAD1 = NearestNeighborSearch(Ntraindata, n_neighbors)
             presult, pdistances, PAD1 = NearestNeighborSearch(Ptraindata, n_neighbors)
 
-            Results,posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD(Best)
-        
+            Results[ite],posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD(Best)
+            depth = np.mean(Level_size)
         else:
             Results[ite], trainedNetwork[ite], options[ite] = neuralNetwork(Ntestdata, Ptestdata)
+            depth = 0
 
+        end = time.time()
+        totalTime.append(start-end) 
+
+    averageTime = np.mean(totalTime)     
     # Save results into an excel file
     formatFilename = "Results/%s/Multilevel_%depochs%dRefine%sBorderPoints%dNeighbors%dLoss%s%smaxIte%d.xlsx"
     filename = formatFilename % (dataName, Multilevel, epochs, refineMethod, numBorderPoints, n_neighbors, loss, label, max_ite)

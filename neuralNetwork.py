@@ -96,6 +96,7 @@ loss,epochs,weights,trainedNetwork, options, model=None):
             lr = hp.Choice('learning_rate', [1e-3, 1e-4, 1e-5])
 
             # Loss function
+            # TODO: Double check that this is the correct focal loss. May not give accurate outputs
             if options['focal']:
                 loss = tfa.losses.SigmoidFocalCrossEntropy(alpha=options['alpha'], gamma=options['gamma'])
             elif options['class_weights']:

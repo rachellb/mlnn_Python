@@ -1,6 +1,7 @@
 import pandas as pd
 import coarsen
 import neuralNetwork
+import refine
 
 def MLD(traindata, train_l, testdata, test_l, NfineData, NfineLbl, NcoarseData, NcoarseLbl, PfineData, PfineLbl, PcoarseData, PcoarseLbl, PAD, Upperlim, Pweight, Nweight,n_neighbors,level,nresult1,presult1,nresult,presult,U_trainsize,Model_Selec,Imb_size,coarse,epochs, Multilevel,MoS_UB,Level_size, numBorderPoints,loss, refineMethod, patience_level, weights, Best):
     ''' A recursive function that iteratively coarsens the data, 
@@ -100,6 +101,27 @@ def MLD(traindata, train_l, testdata, test_l, NfineData, NfineLbl, NcoarseData, 
         if ((len(NcoarseData) < Imb_size) & (len(PcoarseData) < Imb_size)) | (len(NcoarseData)==len(NfineData)):
             coarse = 1
 
-    
+        # Go to next iteration of recursion
+        Results,posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD(traindata, 
+        train_l, testdata, test_l, NfineData, NfineLbl, NcoarseData, NcoarseLbl, PfineData, PfineLbl, PcoarseData, PcoarseLbl, 
+        PAD, Upperlim, Pweight, Nweight,n_neighbors,level,nresult1,presult1,nresult,presult,U_trainsize,Model_Selec,Imb_size,coarse,
+        epochs, Multilevel,MoS_UB,Level_size, numBorderPoints,loss, refineMethod, patience_level, weights, Best)
+
+        # Once all of the coarsening has been performed, begin refining the model
+        traindata,train_l,Results = refine(trainedNetwork, traindata, train_l, numBorderPoints)
+
+        #Check if current refinement gives best results
+        if Results.GMean > Best.GMean:
+            Best.GMean = Results.GMean
+            Best.Acc = Results.GMean
+            Best.Sen = Results.GMean
+            Best.Spec = Results.Spec
+            Best.level = level
+            Best.difference = Level_size-level; # How much did we refine? 
+        
+
+        #If best was beyond patience level, stop refinement
+        if (Best.level - level) >= patience_level: 
+            flag = 1
 
     return Results,posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results
