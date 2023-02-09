@@ -28,7 +28,7 @@ def weighted_binary_cross_entropy(weights: dict, from_logits: bool = False):
     return weighted_cross_entropy_fn
 
 def neuralNetwork(traindata,train_l,valdata,val_l, Model_Selec, 
-loss,epochs,weights,trainedNetwork, options, model=None):
+loss,epochs,weights, options, model=None):
     ''' Function for creating/training the neural network. If not initialized,
     hyperparameter tuning is used to create the architecture. 
     Inputs:
@@ -96,7 +96,7 @@ loss,epochs,weights,trainedNetwork, options, model=None):
             lr = hp.Choice('learning_rate', [1e-3, 1e-4, 1e-5])
 
             # Loss function
-            # TODO: Double check that this is the correct focal loss. May not give accurate outputs
+            # TODO: Double check that this is the correct focal loss.
             if options['focal']:
                 loss = tfa.losses.SigmoidFocalCrossEntropy(alpha=options['alpha'], gamma=options['gamma'])
             elif options['class_weights']:
@@ -124,7 +124,6 @@ loss,epochs,weights,trainedNetwork, options, model=None):
 
         tuner.search(traindata, train_l, epochs=epochs, validation_data=(valdata, val_l))
         best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
-
         model = tuner.hypermodel.build(best_hps)
         
     else:

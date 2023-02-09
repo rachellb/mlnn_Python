@@ -40,10 +40,9 @@ def findBorderPoints(trainedNetwork, traindata, train_l, numBorderPoints, refine
         posBorderPoints, negBorderPoints = numBorderPoints
 
     else: 
-        # do other stuff. 
+        # Perform "flip point" method 
 
         posBorderPoints,negBorderPoints= flipPointFunction(numBorderPoints)
-
 
     return posBorderPoints, negBorderPoints
 
@@ -53,13 +52,16 @@ def Update_Train_Data(posBorderData, negBorderData,NfineData,NfineLbl,PfineData,
     These are combined with the border points to make our new dataset .
 
     Inputs:
+        <posBorderData>:
+        <negBorderData>:
+        <NfineData>:
+        <NfineLbl>:
         <>
-
     Outputs:
         <>
     '''
     
     #finding support vectors in the nresult
-    [~,nindx] = ismember(negBorderData.X,Ndata,'rows');
+    ~,nindx = ismember(negBorderData.X,NfineData,'rows')
 
     return

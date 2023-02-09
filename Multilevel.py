@@ -38,25 +38,26 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
     Ndata = data[data["Label"] == 2]
     Results = {}
     totalTime = ()
+
     for ite in range(1, max_ite+1): 
         start = time.time()
 
-        Ntrainlbl, Ntestlbl, Ptrainlbl, Ptestlbl = train_test_split(Ndata, Pdata, test_size=prop)
-        Ntraindata = Ntrainlbl.drop(columns=["Label"])
-        Ntestdata = Ntestlbl.drop(columns=["Label"])
-        Ptraindata = Ptrainlbl.drop(columns=["Label"])
-        Ptestdata = Ptestlbl.drop(columns=["Label"])
+        train_lbl, train_data, test_lbl, test_data = Split()
 
         Pweight = 1/len(Ptraindata)                      
         Nweight = 1/len(Ntraindata) 
         
+        traindata = pd.concat(Ntraindata, Ptraindata)
+        train_l = pd.concat(Ntrainlbl, PcoarseLbl)
+
+
         Best = {} # Will contain best results found. 
         if multilevel == 1:
             # Create the KNN graph that will be used in multilevel learning
             nresult, ndistances, NAD1 = NearestNeighborSearch(Ntraindata, n_neighbors)
             presult, pdistances, PAD1 = NearestNeighborSearch(Ptraindata, n_neighbors)
 
-            Results[ite],posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD(Best)
+            Results[ite],posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD(traindata, train_l, Best)
             depth = np.mean(Level_size)
         else:
             Results[ite], trainedNetwork[ite], options[ite] = neuralNetwork(Ntestdata, Ptestdata)
