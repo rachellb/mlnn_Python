@@ -1,7 +1,8 @@
 import pandas as pd
+import Split
 import NearestNeighborSearch
 from sklearn.model_selection import train_test_split
-#import MLD
+import MLD
 #import neuralNetwork
 import time
 import numpy as np
@@ -45,24 +46,32 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
     for ite in range(1, max_ite+1): 
         start = time.time()
 
-        train_lbl, train_data, test_lbl, test_data = Split()
-
-        Pweight = 1/len(Ptraindata)                      
-        Nweight = 1/len(Ntraindata) 
+        Ntrainlbl, Ntraindata, Ntestlbl, Ntestdata = Split(Ndata)
+        Ptrainlbl, Ptraindata, Ptestlbl, Ptestdata = Split(Pdata)   
+        
+        #Pweight = 1/len(Ptraindata)                      
+        #Nweight = 1/len(Ntraindata) 
         
         traindata = pd.concat(Ntraindata, Ptraindata)
-        train_l = pd.concat(Ntrainlbl, PcoarseLbl)
+        train_l = pd.concat(Ntrainlbl, Ptrainlbl)
+
+        testdata = pd.concat(Ntestdata, Ptestdata)
+        test_l = pd.concat(Ntestlbl, Ptestlbl)
 
 
         Best = {} # Will contain best results found. 
         if multilevel == 1:
-            # Create the KNN graph that will be used in multilevel learning
-            nresult, ndistances, NAD1 = NearestNeighborSearch(Ntraindata, n_neighbors)
-            presult, pdistances, PAD1 = NearestNeighborSearch(Ptraindata, n_neighbors)
+
+            # Create the KNN graph that will be used in the finest layer of multilevel learning
+            nNeighbors, ndistances, NAD1 = NearestNeighborSearch(Ntraindata, n_neighbors)
+            pNeighbors, pdistances, PAD1 = NearestNeighborSearch(Ptraindata, n_neighbors)
 
 """
-            Results[ite],posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD(traindata, train_l, Best)
+            Results[ite],posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD(traindata, train_l, nNeighbors, pNeighbors, Best)
+            
             depth = np.mean(Level_size)
+            
+
         else:
             Results[ite], trainedNetwork[ite], options[ite] = neuralNetwork(Ntestdata, Ptestdata)
             depth = 0
