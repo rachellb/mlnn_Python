@@ -1,8 +1,8 @@
 import pandas as pd
 import NearestNeighborSearch
 from sklearn.model_selection import train_test_split
-import MLD
-import neuralNetwork
+#import MLD
+#import neuralNetwork
 import time
 import numpy as np
 
@@ -34,10 +34,13 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
         label: Label to give results file. 
     """
 
+    data = pd.read_csv(data, index_col=False)
     Pdata = data[data["Label"] == 1]
     Ndata = data[data["Label"] == 2]
     Results = {}
     totalTime = ()
+
+
 
     for ite in range(1, max_ite+1): 
         start = time.time()
@@ -57,6 +60,7 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
             nresult, ndistances, NAD1 = NearestNeighborSearch(Ntraindata, n_neighbors)
             presult, pdistances, PAD1 = NearestNeighborSearch(Ptraindata, n_neighbors)
 
+"""
             Results[ite],posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD(traindata, train_l, Best)
             depth = np.mean(Level_size)
         else:
@@ -86,3 +90,9 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
     }, columns=['GMean','Acc', 'Sen', 'Spec','stdGMean','stdAcc','stdSen', 'stdSpec', 'Time (sec)', 'Depth', 'Refined'])
 
     resultsTable.to_excel(filename, sheet_name='Sheet1', index=False)
+
+"""
+
+
+if __name__ == "__main__":
+    Multilevel(data="../Hypothyroid.csv", dataName="Hypothyroid")
