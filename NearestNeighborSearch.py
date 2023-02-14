@@ -26,7 +26,7 @@ def NearestNeighborSearch(data, n_neighbors=10, metric='euclidean'):
     # Create a new indicator matrix for this coarse level
     IndicatorMatrix = np.zeros((dataMatrix.shape[0], dataMatrix.shape[0]))
     for point in range(dataMatrix.shape[0]):
-        for neighbor in range(neighbors[point].shape[0]):
-            IndicatorMatrix[neighbors[point][neighbor]][point] = 1
+        for neighbor in range(neighbors[point].shape[0]): # For each neighbor of the given point
+            IndicatorMatrix[neighbors[point, neighbor],point] = 1 # Indicate that they are neighbors in the matrix
 
     return neighbors, IndicatorMatrix

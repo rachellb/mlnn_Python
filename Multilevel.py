@@ -1,17 +1,16 @@
 import pandas as pd
 from Split import Split
+from MLD import MLD
 from NearestNeighborSearch import NearestNeighborSearch
 from sklearn.model_selection import train_test_split
-#import MLD
 #import neuralNetwork
 import time
 import numpy as np
 
 
 def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10,
-    Upperlim=500, Imb_size=300, Model_Selec=1, numBorderPoints=10, 
-    coarse=0, loss="cross", Level_size=1, refineMethod="border", 
-    epochs=100, patience_level=2, weights=False, label=""):
+    Upperlim=500, Imb_size=300, Model_Selec=1, numBorderPoints=10,  loss="cross", Level_size=1, refineMethod="border",
+    epochs=100, patienceLevel=2, weights=False, label=""):
     """
     The main function. Takes data and trains either a multilevel or traditional neural network
 
@@ -38,10 +37,13 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
     data = pd.read_csv(data, index_col=False)
     Pdata = data[data["Label"] == 1]
     Ndata = data[data["Label"] == 2]
-    Results = {}
+    Results = []
     totalTime = ()
 
-
+    # Model Training Options
+    options = {"n_neighbors": n_neighbors, "Upperlim": Upperlim, "Model_Selec": Model_Selec, "Imb_size": Imb_size, "loss": loss,
+               "numBorderPoints": numBorderPoints, "refineMethod": refineMethod, "epochs": epochs,
+               "patienceLevel": patienceLevel, "weights": weights}
 
     for ite in range(1, max_ite+1): 
         start = time.time()
@@ -51,7 +53,7 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
         
         #Pweight = 1/len(Ptraindata)                      
         #Nweight = 1/len(Ntraindata) 
-        
+
         traindata = pd.concat([Ntraindata, Ptraindata])
         train_l = pd.concat([Ntrainlbl, Ptrainlbl])
 
@@ -62,12 +64,14 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
         if multilevel == 1:
 
             # Create the KNN graph that will be used in the finest layer of multilevel learning
-            nNeighbors, NAD1 = NearestNeighborSearch(Ntraindata, n_neighbors)
-            pNeighbors, PAD1 = NearestNeighborSearch(Ptraindata, n_neighbors)
+            nNeighborsFine, nAdjMatrix = NearestNeighborSearch(Ntraindata, n_neighbors)
+            pNeighborsFine, pAdjMatrix = NearestNeighborSearch(Ptraindata, n_neighbors)
 
-"""
-            Results[ite],posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD(traindata, train_l, nNeighbors, pNeighbors, Best)
-            
+
+            Results[ite],posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results =\
+                MLD(traindata, train_l, testdata, test_l, nNeighborsFine, pNeighborsFine,
+                    nAdjMatrix, pAdjMatrix, options, Best)
+            """
             depth = np.mean(Level_size)
             
 
