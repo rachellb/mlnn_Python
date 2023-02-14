@@ -1,47 +1,52 @@
 import numpy as np
 import NearestNeighborSearch
 
-def coarsen(AdjMatrix, data, lbl, n_neighbors=10, metric='euclidean', T=0.6):
-    ''' The primary coarsening function. Uses Maximum Independent Set to coarsen.
-    Inputs: 
-        <AdjMatrix>: A matrix indicating which points are nearest neighbors. If two
-                               points are nearest neighbors, they are indicated with a 1 in
-                               the corresponding point in the matrix, otherwise 0. 
-        <data>: The fine data to be coarsened
-        <lbl>: Corresponding labels to fine data
+def coarsen(fineData, n_neighbors=10, metric='euclidean', T=0.6):
+    ''' The primary coarsening function. Uses dominant set to coarsen currently.
+    Inputs:
+        <fineData>:
+            <AdjMatrix>: A matrix indicating which points are nearest neighbors. If two
+                                   points are nearest neighbors, they are indicated with a 1 in
+                                   the corresponding point in the matrix, otherwise 0.
+            <Data>: The fine data to be coarsened
+            <Label>: Corresponding labels to fine data
+            <KNeighbors>: Matrix of indices for nearest neighbors.
+                   column: The point in question
+                   row: The index of the given point's i nearest neighbor.
         <n_neighbors>: Number of points to consider in nearest neighbor search
         <metric>: The distance metric to be used in nearest neighbor search
-        <T>: Proportional size of coarse data relative to fine data. 
-    Outputs: 
-        <data>: The coarsened data
-        <lbl>: The coarsened data's corresponding labels
-        <result>: Matrix of indices for nearest neighbors. 
-               column: The point in question
-               row: The index of the given point's i nearest neighbor.
-        <distances>: The distances between each point and its nearest neighbor
-        <AdjMatrix>: A matrix indicating which points are nearest neighbors in coarsened dataset. If two
-                               points are nearest neighbors, they are indicated with a 1 in
-                               the corresponding point in the matrix, otherwise 0. 
+        <T>: Proportional size of coarse data relative to fine data.
+
+    Outputs:
+        <coarseData>: A dictionary containing information about the Coarse dataset.
+            <Data>: The coarsened data
+            <Label>: The coarsened data's corresponding labels
+            <KNeighbors>: Matrix of indices for nearest neighbors.
+                   column: The point in question
+                   row: The index of the given point's i nearest neighbor.
+            <AdjMatrix>: A matrix indicating which points are nearest neighbors in coarsened dataset. If two
+                                   points are nearest neighbors, they are indicated with a 1 in
+                                   the corresponding point in the matrix, otherwise 0.
     '''
 
+    coarseData = {}
+
     # Calculate which points will be in coarsened dataset
-    coarseData = DomSetCoarsening(AdjMatrix, T)
+    coarseIndicies = DomSetCoarsening(fineData["AdjMatrix"], T)
 
 
-    l = len(data)
+    l = len(fineData["Data"])
     node = list(range(1,l+1)) # indices of all points in fine data
-    vhat = coarseData.sort() # The sorted list of coarsened nodes
+    vhat = coarseIndicies.sort() # The sorted list of coarsened nodes
     comp_Vhat = np.setxor1d(node, vhat) # Return a list of all points that are not in their intersection
 
-    data = data[comp_Vhat] # Remove datapoints that are not in the coarsened set
-    lbl = lbl[comp_Vhat] # Remove labels that are not in the coarsened set
+    coarseData["Data"] = fineData["Data"][comp_Vhat] # Remove datapoints that are not in the coarsened set
+    coarseData["Labels"] = fineData["Labels"][comp_Vhat] # Remove labels that are not in the coarsened set
 
-    # Calculate the distance and indices of the ten nearest neighbors, as well as their corresponding
-    # Indicator matrix 
-    result, AdjMatrixCoarse = NearestNeighborSearch(data, n_neighbors, metric)
+    # Calculate nearest neighbors of this new coarse dataset.
+    coarseData["KNeighbors"], coarseData["AdjMatrix"] = NearestNeighborSearch(fineData["Data"], n_neighbors, metric)
 
-    return data, lbl, result, AdjMatrixCoarse
-
+    return coarseData
 
 def DomSetCoarsening(AdjMatrix, T=0.6):
 

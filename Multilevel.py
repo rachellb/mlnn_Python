@@ -64,13 +64,18 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
         if multilevel == 1:
 
             # Create the KNN graph that will be used in the finest layer of multilevel learning
-            nNeighborsFine, nAdjMatrix = NearestNeighborSearch(Ntraindata, n_neighbors)
-            pNeighborsFine, pAdjMatrix = NearestNeighborSearch(Ptraindata, n_neighbors)
+            nNeighbors, nAdjMatrix = NearestNeighborSearch(Ntraindata, n_neighbors)
+            pNeighbors, pAdjMatrix = NearestNeighborSearch(Ptraindata, n_neighbors)
 
+            # Put everything into a dictionary to better keep track of it all
+            negativeData = {"Data": Ntraindata, "Labels": Ntrainlbl, "KNeighbors": nNeighbors, "AdjMatrix": nAdjMatrix}
+            positiveData = {"Data": Ptraindata, "Labels": Ptrainlbl, "KNeighbors": pNeighbors, "AdjMatrix": pAdjMatrix}
+
+            level = 0
 
             Results[ite],posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results =\
-                MLD(traindata, train_l, testdata, test_l, nNeighborsFine, pNeighborsFine,
-                    nAdjMatrix, pAdjMatrix, options, Best)
+                MLD(traindata, train_l, testdata, test_l,level, negativeData, positiveData, options)
+
             """
             depth = np.mean(Level_size)
             

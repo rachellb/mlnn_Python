@@ -3,10 +3,8 @@ from coarsen import coarsen
 import neuralNetwork
 #import refine
 
-def MLD(traindata, train_l, testdata, test_l, nNeighborsCoarse, pNeighborsCoarse, nAdjMatrix, pAdjMatrix,
-        NfineData, NfineLbl, PfineData, PfineLbl,
-        PAD, Pweight, Nweight, level, nresult,presult, options,
-        NcoarseData=None, NcoarseLbl=None, PcoarseData=None, PcoarseLbl=None, coarse=0, Level_size=None, Best=None):
+def MLD(traindata, train_l, testdata, test_l, level, NdataCoarse, PdataCoarse, options,
+        NdataFine=None, PdataFine=None, coarse=0, Level_size=None, Best=None):
 
     ''' A recursive function that iteratively coarsens the data,
     trains the network once we hit the coarsest level, then begins refinement.
@@ -15,20 +13,21 @@ def MLD(traindata, train_l, testdata, test_l, nNeighborsCoarse, pNeighborsCoarse
             <train_l>: Training Labels
             <testdata>: Test data, both positive and negative
             <test_l>: Testing Labels
-            <NfineData>: Negative data for previous refinement level
-            <NfineLbl>: Negative labels for previous refinement level
-            <NcoarseData>: Negative data for this refinement level
-            <NcoarseLbl>: Negative labels for this refinement level
-            <NAD>: Nearest Neighbor Indicator Matrix for Negative Points
-            <PfineData>: Positive data for previous refinement level
-            <PfineLbl>: Positive labels for previous refinement level
-            <PcoarseData>: Positive data for this refinement level
-            <PcoarseLbl>: Positive labels for this refinement level
-            <PAD>: Nearest Neighbor Indicator Matrix for Positive Points
+            <NdataFine>:
+                <NfineData>: Negative data for previous refinement level
+                <NfineLbl>: Negative labels for previous refinement level
+                <NcoarseData>: Negative data for this refinement level
+                <NcoarseLbl>: Negative labels for this refinement level
+                <NAD>: Nearest Neighbor Indicator Matrix for Negative Points
+            <PdataFine>:
+                <PfineData>: Positive data for previous refinement level
+                <PfineLbl>: Positive labels for previous refinement level
+                <PcoarseData>: Positive data for this refinement level
+                <PcoarseLbl>: Positive labels for this refinement level
+                <PAD>: Nearest Neighbor Adjacency Matrix for Positive Points
             <Upperlim>: Maximum size of coarsest level data
-            <Pweight>: Weights for positive data, if desired
-            <Nweight>: Weights for negative data, if desired
-            <n_neighbors>: How many nearest neighbors to select
+            <options>: Dictionary of Training options
+                <n_neighbors>: How many nearest neighbors to select
             <level>: Which level of refinement we are at
             <nresult1>: Nearest neighbors of negative data at this refinement level
             <presult1>: Nearest neighbors of positive data at this refinement level
@@ -81,41 +80,35 @@ def MLD(traindata, train_l, testdata, test_l, nNeighborsCoarse, pNeighborsCoarse
     else:
         # Keep track of information regarding previous refinement levels
         # Previous levels are considered "fine" relative to the current level.
-
-        NfineData = NcoarseData
-        NfineLbl = NcoarseLbl
-        PfineData = PcoarseData
-        PfineLbl = PcoarseLbl
-        NfineNeighbors = nNeighbors
-        PfineNeighbors = pNeighbors
+        NfineData = NdataCoarse
+        PfineData = PdataCoarse
 
         # If there are too many points in each class to begin training, begin coarsening
         if (len(NfineData,1) > options["Imb_size"]):
-            NcoarseData, NcoarseLbl, nresultCoarse, nAdjMatrixCoarse = coarsen(nAdjMatrix, NfineData, NfineLbl,
-                                                                               options["n_neighbors"], T=0.6)
+            NdataCoarse = coarsen(NdataFine, options["n_neighbors"], T=0.6)
 
         if (len(PfineData, 1) > options["Imb_size"]):
-            PcoarseData, PcoarseLbl, presultCoarse, pAdjMatrixCoarse = coarsen(pAdjMatrix, PfineData, PfineLbl,
-                                                                               options["n_neighbors"], T=0.6)
+            PdataCoarse = coarsen(PdataFine, options["n_neighbors"], T=0.6)
 
-        traindata = pd.concat([NcoarseData, PcoarseLbl])
-        train_l = pd.concat([NcoarseLbl, PcoarseLbl])
+        traindata = pd.concat([NdataCoarse["Data"], PdataCoarse["Data"]])
+        train_l = pd.concat([NdataCoarse["Label"], PdataCoarse["Label"]])
 
         #Pweight = 1/len(PcoarseLbl,1)
         #Nweight = 1/len(NcoarseLbl,1)
 
-        """
+
         # If the size of each dataset is considered small enough or no more meaningful coarsening
         # can be performed, then this is the coarsest level of data. 
-        if ((len(NcoarseData) < Imb_size) & (len(PcoarseData) < Imb_size)) | (len(NcoarseData)==len(NfineData)):
+        if ((len(NdataCoarse["Data"]) < options["Imb_size"]) & (len(PdataCoarse["Data"]) < options["Imb_size"])) | \
+                (len(NdataCoarse["Data"])==len(NdataFine["Data"])):
             coarse = 1
 
         # Go to next iteration of recursion
-        Results,posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD(traindata, 
-        train_l, testdata, test_l, NfineData, NfineLbl, NcoarseData, NcoarseLbl, PfineData, PfineLbl, PcoarseData, PcoarseLbl, 
-        PAD, Upperlim, Pweight, Nweight,n_neighbors,level,nresult1,presult1,nresult,presult,U_trainsize,Model_Selec,Imb_size,coarse,
-        epochs, Multilevel,MoS_UB,Level_size, numBorderPoints,loss, refineMethod, patience_level, weights, Best)
+        Results, posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD(
+            traindata, train_l, testdata, test_l, level, NdataCoarse, PdataCoarse, options,
+            NdataFine, PdataFine, coarse, Level_size)
 
+        """
         # Once all of the coarsening has been performed, begin refining the model
         traindata,train_l,Results = refine(trainedNetwork, traindata, train_l, numBorderPoints)
 
@@ -135,4 +128,5 @@ def MLD(traindata, train_l, testdata, test_l, nNeighborsCoarse, pNeighborsCoarse
     """
         flag=1
         Level_results=None
-    return Results,posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results
+        
+    return Results, posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results
