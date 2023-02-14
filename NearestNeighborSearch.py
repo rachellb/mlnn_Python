@@ -20,14 +20,13 @@ def NearestNeighborSearch(data, n_neighbors=10, metric='euclidean'):
     """
 
     dataMatrix = data.values
-    nnd = NNDescent(dataMatrix, metric=metric)
-    nnd.init_network()
-    nnd.search(k=n_neighbors)
-    neighbors = nnd.get_knn()
-    distances = nnd.get_distances()
+    index = NNDescent(dataMatrix, metric=metric)
+    neighbors = index.neighbor_graph[0][:, 1:(n_neighbors+1)] # Select only the k nearest neighbors
+
+    # Create a new indicator matrix for this coarse level
     IndicatorMatrix = np.zeros((dataMatrix.shape[0], dataMatrix.shape[0]))
     for point in range(dataMatrix.shape[0]):
-        for neighbor in range(result[point].shape[0]):
-            IndicatorMatrix[result[point][neighbor]][point] = 1
+        for neighbor in range(neighbors[point].shape[0]):
+            IndicatorMatrix[neighbors[point][neighbor]][point] = 1
 
-    return neighbors, distances, IndicatorMatrix
+    return neighbors, IndicatorMatrix

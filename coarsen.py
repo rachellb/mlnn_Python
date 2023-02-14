@@ -23,48 +23,57 @@ def coarsen(IndicatorMatrix, data, lbl, n_neighbors=10, metric='euclidean', T=0.
                                points are nearest neighbors, they are indicated with a 1 in
                                the corresponding point in the matrix, otherwise 0. 
     '''
-    
-    R = findCoarseIndicies(IndicatorMatrix, T)
+
+    # Calculate which points will be in coarsened dataset
+    coarseData = MaxSetCoarsening(IndicatorMatrix, T)
+
+
     l = len(data)
     node = list(range(1,l+1)) # indices of all points in fine data
-    Vhat = R.sort() # The sorted list of caorsened nodes
-    Comp_Vhat = np.setxor1d(node,Vhat) # Return a list of all points that are not in their intersection
-    data = data[Comp_Vhat] # Remove datapoints that are not in the coarsened set 
-    lbl = lbl[Comp_Vhat] # Remove labels that are not in the coarsened set 
+    vhat = coarseData.sort() # The sorted list of coarsened nodes
+    comp_Vhat = np.setxor1d(node, vhat) # Return a list of all points that are not in their intersection
+
+    data = data[comp_Vhat] # Remove datapoints that are not in the coarsened set
+    lbl = lbl[comp_Vhat] # Remove labels that are not in the coarsened set
 
     # Calculate the distance and indices of the ten nearest neighbors, as well as their corresponding
     # Indicator matrix 
-    result, distances, IndicatorMatrix = NearestNeighborSearch(data, n_neighbors, metric)
+    result, IndicatorMatrix = NearestNeighborSearch(data, n_neighbors, metric)
 
-    return data, lbl, result, distances, IndicatorMatrix
+    return data, lbl, result, IndicatorMatrix
 
 
-def findCoarseIndicies(IndicatorMatrix, T):
+def MaxSetCoarsening(IndicatorMatrix, T=0.6):
 
     '''
+    This function takes in the indicator matrix and creates a maximum independent set.
+    It's a greedy algorithm that finds a series of independent sets, adding them
+    to the "coarse" dataset. This does not guarantee that we'll have a maximum
+    independent set, and honestly I'm not sure it guarantees that the coarse set is
+    independent at all.
     Inputs: 
         <IndicatorMatrix>: A matrix indicating which points are nearest neighbors. If two 
                                points are nearest neighbors, they are indicated with a 1 in
                                the corresponding point in the matrix, otherwise 0. 
         <T>: Proportional size of coarse data relative to fine data. 
     Outputs: 
-        <R>: The Maximum Independent Set. 
+        <maxSet>: The Maximum Independent Set (MIS).
         Contains a list of indicies of points that remain in the coarse set. 
     '''
-    T = 0.6 # Proportion of graph that will remain in the "coarse" level
-    n, m = IndicatorMatrix.shape # Size of 
-    l = np.arange(n)
 
-    R = []
-    while len(R) < T * n:
-        l = np.arange(n)
-        l[R] = 0
-        while np.count_nonzero(l) > 0:
-            toPick = np.where(l)[0]
-            i = np.random.choice(toPick)
-            R.append(i)
-            l[i] = 0
-            neigh = np.where(IndicatorMatrix[i,:])[0]
-            l[neigh] = 0
+    n, m = IndicatorMatrix.shape # Size of indicator matrix.
+    maxSet = []
+
+    # Until we have a desired fraction (T) of the fine data, repeat this loop
+    while len(maxSet) < T * n:
+        coarseOptions = np.arange(n) # Create a list of possible choices
+        coarseOptions[maxSet] = 0 # Remove our previous independent set from the option list
+        while np.count_nonzero(coarseOptions) > 0:
+            toPick = np.where(coarseOptions)[0] # Select all non-zero options from l
+            i = np.random.choice(toPick) # Pick one of those at random
+            maxSet.append(i) # add it to the independent set list
+            coarseOptions[i] = 0 # remove it from the list of options
+            neigh = np.where(IndicatorMatrix[i,:])[0] # Find the neighors of that random point
+            coarseOptions[neigh] = 0 # Remove all neighbors from the options list as well
     
-    return R
+    return maxSet
