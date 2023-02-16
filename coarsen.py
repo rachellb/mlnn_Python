@@ -1,5 +1,5 @@
 import numpy as np
-import NearestNeighborSearch
+from NearestNeighborSearch import NearestNeighborSearch
 
 def coarsen(fineData, n_neighbors=10, metric='euclidean', T=0.6):
     ''' The primary coarsening function. Uses dominant set to coarsen currently.
@@ -34,17 +34,11 @@ def coarsen(fineData, n_neighbors=10, metric='euclidean', T=0.6):
     # Calculate which points will be in coarsened dataset
     coarseIndicies = DomSetCoarsening(fineData["AdjMatrix"], T)
 
-
-    l = len(fineData["Data"])
-    node = list(range(1,l+1)) # indices of all points in fine data
-    vhat = coarseIndicies.sort() # The sorted list of coarsened nodes
-    comp_Vhat = np.setxor1d(node, vhat) # Return a list of all points that are not in their intersection
-
-    coarseData["Data"] = fineData["Data"][comp_Vhat] # Remove datapoints that are not in the coarsened set
-    coarseData["Labels"] = fineData["Labels"][comp_Vhat] # Remove labels that are not in the coarsened set
+    coarseData["Data"] = fineData["Data"].iloc[coarseIndicies, :]
+    coarseData["Labels"] = fineData["Labels"].iloc[coarseIndicies, :]
 
     # Calculate nearest neighbors of this new coarse dataset.
-    coarseData["KNeighbors"], coarseData["AdjMatrix"] = NearestNeighborSearch(fineData["Data"], n_neighbors, metric)
+    coarseData["KNeighbors"], coarseData["AdjMatrix"] = NearestNeighborSearch(coarseData["Data"], n_neighbors, metric)
 
     return coarseData
 
