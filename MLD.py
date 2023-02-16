@@ -1,11 +1,11 @@
 import pandas as pd
 from coarsen import coarsen
 from neuralNetwork import neuralNetwork
-#import refine
+from refine import refine
 from Evaluate import Evaluate
 
-def MLD(traindata, train_l, valdata, val_l, level, NdataCoarse, PdataCoarse, options,
-        NdataFine=None, PdataFine=None, coarse=0, max_Depth=0, Best=None):
+def MLD(valdata, val_l, level, NdataFine, PdataFine, options,
+        NdataCoarse=None, PdataCoarse=None, coarse=0, max_Depth=0, Best=None):
 
     ''' A recursive function that iteratively coarsens the data,
     trains the network once we hit the coarsest level, then begins refinement.
@@ -58,6 +58,9 @@ def MLD(traindata, train_l, valdata, val_l, level, NdataCoarse, PdataCoarse, opt
            <Level_results>: Results per refinement level
    '''
 
+    traindata = pd.concat([NdataFine["Data"], PdataFine["Data"]])
+    train_lbl = pd.concat([NdataFine["Labels"], PdataFine["Labels"]])
+
     DATA_size = traindata.shape[0]
 
     # If the combined positive and negative data is below the maximum training threshold, 
@@ -66,7 +69,9 @@ def MLD(traindata, train_l, valdata, val_l, level, NdataCoarse, PdataCoarse, opt
 
         max_Depth = level+1
 
-        model = neuralNetwork(traindata, train_l, options)
+
+
+        model = neuralNetwork(traindata, train_lbl, options)
         Results = Evaluate(model, valdata, val_l)
 
         # Indicate that training of the coarsest section is done.
@@ -81,16 +86,12 @@ def MLD(traindata, train_l, valdata, val_l, level, NdataCoarse, PdataCoarse, opt
 
     # Else, begin coarsening the data
     else:
-        # Keep track of information regarding previous refinement levels
-        # Previous levels are considered "fine" relative to the current level.
-        NfineData = NdataCoarse
-        PfineData = PdataCoarse
 
         # If there are too many points in each class to begin training, begin coarsening
-        if NfineData["Data"].shape[0] > options["Imb_size"]:
+        if NdataFine["Data"].shape[0] > options["Imb_size"]:
             NdataCoarse = coarsen(NdataFine, options["n_neighbors"], T=0.6)
 
-        if PfineData["Data"].shape[0] > options["Imb_size"]:
+        if PdataFine["Data"].shape[0] > options["Imb_size"]:
             PdataCoarse = coarsen(PdataFine, options["n_neighbors"], T=0.6)
 
         traindata = pd.concat([NdataCoarse["Data"], PdataCoarse["Data"]])
@@ -107,13 +108,13 @@ def MLD(traindata, train_l, valdata, val_l, level, NdataCoarse, PdataCoarse, opt
             coarse = 1
 
         # Go to next iteration of recursion
-        Results, posBorderData, negBorderData, Depth, options, Best, flag, Level_results = MLD(
-            traindata, train_l, valdata, val_l, level, NdataCoarse, PdataCoarse, options, max_Depth,
+        Results, posBorderData, negBorderData, Depth, options, Best, flag, Level_results = \
+            MLD(valdata, val_l, level, NdataCoarse, PdataCoarse, options, max_Depth,
             NdataFine, PdataFine, coarse)
 
 
         # Once all of the coarsening has been performed, begin refining the dataset
-        traindata, train_l = refine(trainedNetwork, traindata, train_l, numBorderPoints)
+        traindata, train_l = refine(model, traindata, train_l, options["numBorderPoints"])
 
         #
         model = neuralNetwork()

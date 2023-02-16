@@ -75,9 +75,6 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
             Ptrainlbl = Ptraindata.drop(["Label"], axis=1)
             Ntrainlbl = Ntraindata.drop(["Label"], axis=1)
 
-            traindata = pd.concat([Ntraindata, Ptraindata])
-            train_lbl = pd.concat([Ntrainlbl, Ptrainlbl])
-
             # Create the KNN graph that will be used in the finest layer of multilevel learning
             nNeighbors, nAdjMatrix = NearestNeighborSearch(Ntraindata, n_neighbors)
             pNeighbors, pAdjMatrix = NearestNeighborSearch(Ptraindata, n_neighbors)
@@ -88,7 +85,7 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
 
             level = 0
             model, posBorderData, negBorderData, max_Depth, options, Best, flag, Level_results =\
-                MLD(traindata, train_lbl, valdata, val_lbl, level, negativeData, positiveData, options)
+                MLD(valdata, val_lbl, level, negativeData, positiveData, options)
 
             res = Evaluate(model, testdata, test_lbl)
             aveCoarsenDepth = np.mean(max_Depth)
@@ -133,4 +130,4 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
 
 
 if __name__ == "__main__":
-    Multilevel(data="../Hypothyroid.csv", dataName="Hypothyroid", multilevel=0)
+    Multilevel(data="../Hypothyroid.csv", dataName="Hypothyroid", multilevel=1)

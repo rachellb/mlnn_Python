@@ -1,6 +1,6 @@
 import neuralNetwork
 
-def refine(model, NcoarseData, NcoarseLbl,PcoarseData,PcoarseLbl,n_neighbors, options):
+def refine(model, Ncoarse, Pcoarse, n_neighbors, options):
 
     ''' Updates the training data and trains the neural network. Has 2 parts:
 
@@ -17,16 +17,17 @@ def refine(model, NcoarseData, NcoarseLbl,PcoarseData,PcoarseLbl,n_neighbors, op
     '''
     
     # Find border points
-    posBorderPoints, negBorderPoints = findBorderPoints(model, traindata, train_l,
-                                                        options["numBorderPoints"], options["refineMethod"])
-
+    negBorderPoints = findBorderPoints(model, Ncoarse, options["numBorderPoints"],
+                                                        options["refineMethod"])
+    posBorderPoints = findBorderPoints(model, Pcoarse, options["numBorderPoints"],
+                                                        options["refineMethod"])
     # Update training data
-    traindata,train_l = Update_Train_Data(posBorderPoints, negBorderPoints,NcoarseData,NcoarseLbl,PcoarseData,PcoarseLbl,n_neighbors)
+    Nfine = Update_Train_Data(negBorderPoints, Ncoarse, options["n_neighbors"])
+    Pfine = Update_Train_Data(posBorderPoints, Ncoarse, options["n_neighbors"])
 
+    return Nfine, Pfine
 
-    return NcoarseData, train_l
-
-def findBorderPoints(trainedNetwork, traindata, train_l, numBorderPoints, refineMethod):
+def findBorderPoints(model, traindata, train_l, numBorderPoints, refineMethod):
     ''' Finds which points are the "border points", or pseudo-support vectors. 
     Can be done either using the output of the loss function or by using the flip points.
     
@@ -47,7 +48,7 @@ def findBorderPoints(trainedNetwork, traindata, train_l, numBorderPoints, refine
     return posBorderPoints, negBorderPoints
 
 
-def Update_Train_Data(posBorderData, negBorderData,NfineData,NfineLbl,PfineData,PfineLbl,n_neighbors,nresultFine,presultFine):
+def Update_Train_Data(borderPoints, coarseData, n_neighbors):
     ''' Takes the border points and finds their nearest neighbors in the higher, "fine" level of data.
     These are combined with the border points to make our new dataset .
 
@@ -64,4 +65,6 @@ def Update_Train_Data(posBorderData, negBorderData,NfineData,NfineLbl,PfineData,
     #finding support vectors in the nresult
     #~,nindx = ismember(negBorderData.X,NfineData,'rows')
 
-    return
+    fineData = "placeholder"
+
+    return fineData
