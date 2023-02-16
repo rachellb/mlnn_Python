@@ -1,34 +1,30 @@
 import neuralNetwork
 
-def refine(refineMethod, trainedNetwork, traindata, train_l, NfineData, NfineLbl,PfineData,PfineLbl,n_neighbors,nresultFine,presultFine,numBorderPoints):
-    ''' Updates the training data and trains the neural network. Has 3 parts: 
-    1. Finds the current border points
-    2. Updates the training data
-    3. Train the neural network on updated data 
+def refine(trainedNetwork, traindata, train_l, NfineData, NfineLbl,PfineData,PfineLbl,n_neighbors, options):
+
+    ''' Updates the training data and trains the neural network. Has 2 parts:
+
+    1. Finds the current border points given the current neural network
+    2. Updates the training data with relevant fine level data
 
     Inputs: 
         <trainedNetwork>: The network that has been trained at the previous level of refinement
         <traindata>: The previous training data
         <train_l>: Labels of previous refinement training data
 
-    Outputs: 
-        <Results>:
-        <trainedNetwork>: 
-
+    Outputs:
+        <updatedData>:
     '''
     
     # Find border points
-    posBorderPoints, negBorderPoints = findBorderPoints(trainedNetwork, traindata, train_l, numBorderPoints, refineMethod)
+    posBorderPoints, negBorderPoints = findBorderPoints(trainedNetwork, traindata, train_l,
+                                                        options["numBorderPoints"], options["refineMethod"])
 
     # Update training data
-    traindata,train_l = Update_Train_Data(posBorderPoints, negBorderPoints,NfineData,NfineLbl,PfineData,PfineLbl,n_neighbors,nresultFine,presultFine)
-     
-    # TODO: Double check status of validation data
-    # Train on updated dataset
-    Results, trainedNetwork, options = neuralNetwork(traindata,train_l,valdata,val_l,loss,
-                                                     epochs,weights,trainedNetwork, options,Model_Selec=0, model=None)
-       
-    return Results, trainedNetwork
+    traindata,train_l = Update_Train_Data(posBorderPoints, negBorderPoints,NfineData,NfineLbl,PfineData,PfineLbl,n_neighbors)
+
+
+    return traindata, train_l
 
 def findBorderPoints(trainedNetwork, traindata, train_l, numBorderPoints, refineMethod):
     ''' Finds which points are the "border points", or pseudo-support vectors. 
@@ -62,6 +58,6 @@ def Update_Train_Data(posBorderData, negBorderData,NfineData,NfineLbl,PfineData,
     '''
     
     #finding support vectors in the nresult
-    ~,nindx = ismember(negBorderData.X,NfineData,'rows')
+    #~,nindx = ismember(negBorderData.X,NfineData,'rows')
 
     return

@@ -8,9 +8,16 @@ def Split(data, prop):
         <prop> : (float). The proportion of data that is to be considered for training. 
     '''
     # Split labels from data
-    train_data, test_data = train_test_split(data, train_size=prop)
-    train_lbl = train_data.pop("Label")
-    test_lbl = test_data.pop("Label")
+    Pdata = data[data["Label"] == 1]
+    Ndata = data[data["Label"] == 0]
+
+    Ptraindata, Ptestdata = train_test_split(Pdata, train_size=prop)
+    Ptrain_lbl = Ptraindata["Label"]
+    Ptest_lbl = Ptestdata["Label"]
+    Ptraindata = Ptraindata.drop(["Label"], axis=1)
+    Ptestdata = Ptestdata.drop(["Label"], axis=1)
+
+
     
-    return train_lbl, train_data, test_lbl, test_data
+    return train_lbl, traindata, test_lbl, testdata
 

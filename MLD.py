@@ -2,9 +2,10 @@ import pandas as pd
 from coarsen import coarsen
 import neuralNetwork
 #import refine
+from Evaluate import Evaluate
 
-def MLD(traindata, train_l, testdata, test_l, level, NdataCoarse, PdataCoarse, options,
-        NdataFine=None, PdataFine=None, coarse=0, Level_size=None, Best=None):
+def MLD(traindata, train_l, valdata, val_l, level, NdataCoarse, PdataCoarse, options,
+        NdataFine=None, PdataFine=None, coarse=0, Depth=0, Best=None):
 
     ''' A recursive function that iteratively coarsens the data,
     trains the network once we hit the coarsest level, then begins refinement.
@@ -33,12 +34,12 @@ def MLD(traindata, train_l, testdata, test_l, level, NdataCoarse, PdataCoarse, o
             <presult1>: Nearest neighbors of positive data at this refinement level
             <nresult>: Nearest neighbors of negative data at previous refinement level
             <presult>: Nearest neighbors of positive data at previous refinement level
-            <Model_Selec>:
+            <Model_Selec>: Whether or not to perform hyperparameter tuning
             <Imb_size>: Maximum size of positive and negative data individually
             <coarse>: Binary variable indicating if we have hit the coarsest level.
             <epochs>: Number of epochs to train neural network for
             <Multilevel>: Whether or not we're doing the multilevel version of the code.
-            <Level_size>: What level we're at
+            <Depth>: What refinement depth we're at
             <numBorderPoints>: How many border points (for each class) to select during refinement
             <loss>: Which type of loss function to use
             <refineMethod>: Which refinement method to use, "flip" or "border"
@@ -49,25 +50,27 @@ def MLD(traindata, train_l, testdata, test_l, level, NdataCoarse, PdataCoarse, o
            <Results>: The results of the model at this level
            <posBorderData>: Positive Border points
            <negBorderData>: Negative Border points
-           <Level_size>:
+           <Depth>: What refinement depth we're at
            <trainedNetwork>: The trained neural network for this level
-           <options>: Neural network hyperparameters
+           <options>: Dictionary of Hyperparameters
            <Best>: Dictionary of best results found so far
            <flag>: Flag for ceasing refinement if results have not improved in given number of levels
            <Level_results>: Results per refinement level
    '''
 
-    DATA_size = len(traindata, 1)
+    DATA_size = traindata.shape[0]
 
     # If the combined positive and negative data is below the maximum training threshold, 
     # begin training. 
     if DATA_size < options["Upperlim"] | coarse == 1:
 
-        Level_size = level+1
+        Depth = level+1
 
-        # TODO: Make sure you've separated the validation data from the test data!
-        Results, trainedNetwork, options, posBorderData, negBorderData = neuralNetwork(traindata,train_l,testdata,test_l,loss,epochs,weights,Multilevel, numBorderPoints, refineMethod)
-        coarse = 0 # Training of coarsest section is done.
+        model = neuralNetwork(traindata, train_l, options)
+        Results = Evaluate(model, valdata, val_l)
+
+        # Indicate that training of the coarsest section is done.
+        coarse = 0
 
         # Results of best trained neural network so far. 
         Best["level"] = level+1
@@ -84,10 +87,10 @@ def MLD(traindata, train_l, testdata, test_l, level, NdataCoarse, PdataCoarse, o
         PfineData = PdataCoarse
 
         # If there are too many points in each class to begin training, begin coarsening
-        if (len(NfineData,1) > options["Imb_size"]):
+        if NfineData["Data"].shape[0] > options["Imb_size"]:
             NdataCoarse = coarsen(NdataFine, options["n_neighbors"], T=0.6)
 
-        if (len(PfineData, 1) > options["Imb_size"]):
+        if PfineData["Data"].shape[0] > options["Imb_size"]:
             PdataCoarse = coarsen(PdataFine, options["n_neighbors"], T=0.6)
 
         traindata = pd.concat([NdataCoarse["Data"], PdataCoarse["Data"]])
@@ -96,22 +99,25 @@ def MLD(traindata, train_l, testdata, test_l, level, NdataCoarse, PdataCoarse, o
         #Pweight = 1/len(PcoarseLbl,1)
         #Nweight = 1/len(NcoarseLbl,1)
 
-
         # If the size of each dataset is considered small enough or no more meaningful coarsening
         # can be performed, then this is the coarsest level of data. 
-        if ((len(NdataCoarse["Data"]) < options["Imb_size"]) & (len(PdataCoarse["Data"]) < options["Imb_size"])) | \
-                (len(NdataCoarse["Data"])==len(NdataFine["Data"])):
+        if ((NdataCoarse["Data"].shape[0] < options["Imb_size"]) & (PdataCoarse["Data"].shape[0] < options["Imb_size"])) | \
+                (NdataCoarse["Data"].shape[0] == NdataFine["Data"].shape[0]):
             coarse = 1
 
         # Go to next iteration of recursion
-        Results, posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results = MLD(
-            traindata, train_l, testdata, test_l, level, NdataCoarse, PdataCoarse, options,
-            NdataFine, PdataFine, coarse, Level_size)
+        Results, posBorderData, negBorderData, Depth, options, Best, flag, Level_results = MLD(
+            traindata, train_l, valdata, val_l, level, NdataCoarse, PdataCoarse, options, Depth,
+            NdataFine, PdataFine, coarse)
+
+
+        # Once all of the coarsening has been performed, begin refining the dataset
+        traindata, train_l = refine(trainedNetwork, traindata, train_l, numBorderPoints)
+
+        #
+        model = neuralNetwork()
 
         """
-        # Once all of the coarsening has been performed, begin refining the model
-        traindata,train_l,Results = refine(trainedNetwork, traindata, train_l, numBorderPoints)
-
         #Check if current refinement gives best results
         if Results.GMean > Best.GMean:
             Best.GMean = Results.GMean
@@ -128,5 +134,5 @@ def MLD(traindata, train_l, testdata, test_l, level, NdataCoarse, PdataCoarse, o
     """
         flag=1
         Level_results=None
-        
-    return Results, posBorderData, negBorderData, Level_size, trainedNetwork, options, Best, flag, Level_results
+
+    return model, posBorderData, negBorderData, Depth, options, Best, flag, Level_results

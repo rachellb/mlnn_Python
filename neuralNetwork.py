@@ -6,6 +6,7 @@ from keras import backend as K
 import tensorflow as tf
 import tensorflow_addons as tfa
 from sklearn.utils import class_weight
+from sklearn.model_selection import train_test_split
 import numpy as np
 import os
 
@@ -27,10 +28,11 @@ def weighted_binary_cross_entropy(weights: dict, from_logits: bool = False):
 
     return weighted_cross_entropy_fn
 
-def neuralNetwork(traindata,train_l,valdata,val_l, Model_Selec, 
-loss,epochs,weights, options, model=None):
+def neuralNetwork(traindata,train_l,valdata,val_l, Model_Selec, options, model=None):
+
     ''' Function for creating/training the neural network. If not initialized,
-    hyperparameter tuning is used to create the architecture. 
+    hyperparameter tuning is used to create the architecture. Otherwise,
+    The model passed to it is trained further on the new data.
     Inputs:
         <traindata>: The train data
         <train_l>: Training labels
@@ -45,13 +47,14 @@ loss,epochs,weights, options, model=None):
     Outputs:
         <model>: A trained model
     '''
-    # Tune architecture of model. 
+
+    # Tune architecture of model.
     if Model_Selec == 1:
-        
+
         inputSize = traindata.shape[1]
 
         # Class weights for balancing. 
-        class_weights = class_weight.compute_class_weight('balanced', np.unique(train_l), train_l)
+        class_weights = class_weight.compute_class_weight(class_weight='balanced', classes=np.unique(train_l), y=train_l)
         class_weight_dict = dict(enumerate(class_weights))
         pos = class_weight_dict[1]
         neg = class_weight_dict[0]
@@ -68,41 +71,27 @@ loss,epochs,weights, options, model=None):
             model.add(tf.keras.Input(shape=(inputSize,))) 
 
             # Define number of hidden layers/dropout/batchnumber and associated number of nodes per layer
-            for i in range(hp.Int('num_layers', 2, 8)):
+            for i in range(hp.Int('num_layers', 2, 6)):
                 units = hp.Choice('units_' + str(i), values=[30, 36, 30, 41, 45, 60])
-                deep_activation = hp.Choice('dense_activation_' + str(i), values=['relu', 'tanh'])
-                model.add(tf.keras.layers.Dense(units=units, activation=deep_activation))
-
-                if options['Dropout']:
-                    model.add(tf.keras.layers.Dropout(options['Dropout_Rate']))
-
-                if options['BatchNorm']:
-                    model.add(tf.keras.layers.BatchNormalization(momentum=options['Momentum']))
+                model.add(tf.keras.layers.Dense(units=units, activation='relu'))
+                model.add(tf.keras.layers.Dropout(options['Dropout']))
+                model.add(tf.keras.layers.BatchNormalization(momentum=options['BatchNorm']))
 
             # Add final layer
-            final_activation = 'softmax'
-            if options['bias_init']:
-                model.add(
-                    tf.keras.layers.Dense(2, activation=final_activation, bias_initializer=tf.keras.initializers.Constant(value=bias)))
-            else:
-                model.add(tf.keras.layers.Dense(2, activation=final_activation))
+            model.add(tf.keras.layers.Dense(1, activation='softmax'))
 
-                # Select optimizer
-                optimizer = hp.Choice('optimizer', values=[tf.keras.optimizers.Adam(lr, clipnorm=0.0001),
-                                                           tf.keras.optimizers.Nadam(lr, clipnorm=0.0001), 
-                                                           tf.keras.optimizers.RMSprop(lr, clipnorm=0.0001), 
-                                                           tf.keras.optimizers.SGD(lr, clipnorm=0.0001)])
-
+            # Select optimizer and learning rate.
             lr = hp.Choice('learning_rate', [1e-3, 1e-4, 1e-5])
+            optimizer = tf.keras.optimizers.Adam(lr, clipnorm=0.0001)
 
             # Loss function
             # TODO: Double check that this is the correct focal loss.
-            if options['focal']:
-                loss = tfa.losses.SigmoidFocalCrossEntropy(alpha=options['alpha'], gamma=options['gamma'])
-            elif options['class_weights']:
+            if options['loss'] == "focal":
+                loss = tfa.losses.SigmoidFocalCrossEntropy(alpha=options["alpha"], gamma=options["gamma"])
+            elif options['loss'] == "weighted":
                 loss = weighted_binary_cross_entropy(class_weight_dict)
             else:
-                loss = 'binary_crossentropy'
+                loss = 'categorical_crossentropy'
 
             # Compilation
             model.compile(optimizer=optimizer,
@@ -116,20 +105,24 @@ loss,epochs,weights, options, model=None):
 
         tuner = keras_tuner.Hyperband(build_model,
                                 objective=keras_tuner.Objective('val_auc', direction="max"),
-                                max_epochs=epochs,
+                                max_epochs=options["epochs"],
                                 seed=1234,
                                 factor=options["factor"],
                                 overwrite=True,
                                 directory=os.path.normpath('C:/'))
 
-        tuner.search(traindata, train_l, epochs=epochs, validation_data=(valdata, val_l))
+
+        tuner.search(traindata, train_l, epochs=options["epochs"], validation_data=(valdata, val_l))
         best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
         model = tuner.hypermodel.build(best_hps)
         
     else:
+
         # Continue Training with new data
-        model.fit(traindata, train_l, batch_size=options['batch_size'],
-                                      epochs=options['epochs'],
-                                      verbose=2)
+
+        callback = tf.keras.callbacks.EarlyStopping(monitor='val_auc', patience=5)
+
+        model.fit(traindata, train_l, validation_data=(valdata, val_l), batch_size=options["batch_size"],
+                  epochs=options["epochs"], callbacks=callback, verbose=2)
 
     return model
