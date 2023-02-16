@@ -28,7 +28,7 @@ def weighted_binary_cross_entropy(weights: dict, from_logits: bool = False):
 
     return weighted_cross_entropy_fn
 
-def neuralNetwork(traindata,train_l,valdata,val_l, Model_Selec, options, model=None):
+def neuralNetwork(traindata,train_l,valdata,val_l, options, model=None):
 
     ''' Function for creating/training the neural network. If not initialized,
     hyperparameter tuning is used to create the architecture. Otherwise,
@@ -48,8 +48,8 @@ def neuralNetwork(traindata,train_l,valdata,val_l, Model_Selec, options, model=N
         <model>: A trained model
     '''
 
-    # Tune architecture of model.
-    if Model_Selec == 1:
+    # Tune architecture of model if no model has been given
+    if model:
 
         inputSize = traindata.shape[1]
 

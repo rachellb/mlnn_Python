@@ -1,6 +1,6 @@
 import neuralNetwork
 
-def refine(trainedNetwork, traindata, train_l, NfineData, NfineLbl,PfineData,PfineLbl,n_neighbors, options):
+def refine(model, NcoarseData, NcoarseLbl,PcoarseData,PcoarseLbl,n_neighbors, options):
 
     ''' Updates the training data and trains the neural network. Has 2 parts:
 
@@ -17,28 +17,32 @@ def refine(trainedNetwork, traindata, train_l, NfineData, NfineLbl,PfineData,Pfi
     '''
     
     # Find border points
-    posBorderPoints, negBorderPoints = findBorderPoints(trainedNetwork, traindata, train_l,
+    posBorderPoints, negBorderPoints = findBorderPoints(model, traindata, train_l,
                                                         options["numBorderPoints"], options["refineMethod"])
 
     # Update training data
-    traindata,train_l = Update_Train_Data(posBorderPoints, negBorderPoints,NfineData,NfineLbl,PfineData,PfineLbl,n_neighbors)
+    traindata,train_l = Update_Train_Data(posBorderPoints, negBorderPoints,NcoarseData,NcoarseLbl,PcoarseData,PcoarseLbl,n_neighbors)
 
 
-    return traindata, train_l
+    return NcoarseData, train_l
 
 def findBorderPoints(trainedNetwork, traindata, train_l, numBorderPoints, refineMethod):
     ''' Finds which points are the "border points", or pseudo-support vectors. 
-    Can be done either using the output of the loss function or by 
+    Can be done either using the output of the loss function or by using the flip points.
     
     '''
-    if refineMethod == '':
+    if refineMethod == 'border':
+        """
+        This should take the output of the neural network
+        """
         # TODO: Fix this
+        model.predict(traindata)
         posBorderPoints, negBorderPoints = numBorderPoints
 
-    else: 
+    #else:
         # Perform "flip point" method 
 
-        posBorderPoints,negBorderPoints= flipPointFunction(numBorderPoints)
+        #posBorderPoints,negBorderPoints= flipPointFunction(numBorderPoints)
 
     return posBorderPoints, negBorderPoints
 

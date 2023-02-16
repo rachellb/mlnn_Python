@@ -57,6 +57,13 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
         # Create train/validation data using the train dataset
         traindata, valdata = train_test_split(traindata, train_size=0.7)
 
+        # Validation is kept separate for determining when to stop refinement
+        val_lbl = valdata["Label"]
+        valdata = valdata.drop(["Label"], axis=1)
+
+        # Testing data is only used at the end of the algorithm to estimate final performance
+        test_lbl = testdata["Label"]
+        testdata = testdata.drop(["Label"], axis=1)
 
         if multilevel == 1:
 
@@ -71,11 +78,6 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
             traindata = pd.concat([Ntraindata, Ptraindata])
             train_lbl = pd.concat([Ntrainlbl, Ptrainlbl])
 
-            # Validation is kept separate for determining when to stop refinement
-            val_lbl = valdata["Label"]
-            # Testing data is only used at the end of the algorithm
-            test_lbl = testdata["Label"]
-
             # Create the KNN graph that will be used in the finest layer of multilevel learning
             nNeighbors, nAdjMatrix = NearestNeighborSearch(Ntraindata, n_neighbors)
             pNeighbors, pAdjMatrix = NearestNeighborSearch(Ptraindata, n_neighbors)
@@ -85,29 +87,21 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
             positiveData = {"Data": Ptraindata, "Labels": Ptrainlbl, "KNeighbors": pNeighbors, "AdjMatrix": pAdjMatrix}
 
             level = 0
-
-            model, posBorderData, negBorderData, Depth, options, Best, flag, Level_results =\
-                MLD(traindata, train_lbl, valdata, val_lbl,level, negativeData, positiveData, options)
+            model, posBorderData, negBorderData, max_Depth, options, Best, flag, Level_results =\
+                MLD(traindata, train_lbl, valdata, val_lbl, level, negativeData, positiveData, options)
 
             res = Evaluate(model, testdata, test_lbl)
-
-            aveCoarsenDepth = np.mean(Level_size)
+            aveCoarsenDepth = np.mean(max_Depth)
 
         else:
 
             train_lbl = traindata["Label"]
-            val_lbl = valdata["Label"]
-            test_lbl = testdata["Label"]
-
             traindata = traindata.drop(["Label"], axis=1)
-            valdata = valdata.drop(["Label"], axis=1)
-            testdata = testdata.drop(["Label"], axis=1)
 
-            model = neuralNetwork(traindata, train_lbl, valdata, val_lbl, Model_Selec, options)
-            #model = testNetwork(traindata, train_lbl, valdata, val_lbl)
+            #model = neuralNetwork(traindata, train_lbl, valdata, val_lbl, options)
+            model = testNetwork(traindata, train_lbl, valdata, val_lbl)
             res = Evaluate(model, testdata, test_lbl)
             Results.append(res)
-
             aveCoarsenDepth = 0
 
         """
