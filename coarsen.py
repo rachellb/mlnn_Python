@@ -12,7 +12,7 @@ def coarsen(fineData, n_neighbors=10, metric='euclidean', T=0.6):
             <Label>: Corresponding labels to fine data
             <KNeighbors>: Matrix of indices for nearest neighbors.
                    column: The point in question
-                   row: The index of the given point's i nearest neighbor.
+                   row: The index of the given point's k nearest neighbor.
         <n_neighbors>: Number of points to consider in nearest neighbor search
         <metric>: The distance metric to be used in nearest neighbor search
         <T>: Proportional size of coarse data relative to fine data.

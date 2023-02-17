@@ -4,7 +4,7 @@ from neuralNetwork import neuralNetwork
 from refine import refine
 from Evaluate import Evaluate
 
-def MLD(valdata, val_l, level, NdataFine, PdataFine, options,
+def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, options,
         NdataCoarse=None, PdataCoarse=None, coarse=0, max_Depth=0, Best=None):
 
     ''' A recursive function that iteratively coarsens the data,
@@ -58,9 +58,6 @@ def MLD(valdata, val_l, level, NdataFine, PdataFine, options,
            <Level_results>: Results per refinement level
    '''
 
-    traindata = pd.concat([NdataFine["Data"], PdataFine["Data"]])
-    train_lbl = pd.concat([NdataFine["Labels"], PdataFine["Labels"]])
-
     DATA_size = traindata.shape[0]
 
     # If the combined positive and negative data is below the maximum training threshold, 
@@ -69,10 +66,11 @@ def MLD(valdata, val_l, level, NdataFine, PdataFine, options,
 
         max_Depth = level+1
 
+        valdata1 = "placeholder"
+        val_lbl1 = "placeholder"
 
-
-        model = neuralNetwork(traindata, train_lbl, options)
-        Results = Evaluate(model, valdata, val_l)
+        model = neuralNetwork(traindata, train_lbl, valdata1, val_lbl1, options)
+        Results = Evaluate(model, valdata, val_lbl)
 
         # Indicate that training of the coarsest section is done.
         coarse = 0
@@ -90,12 +88,13 @@ def MLD(valdata, val_l, level, NdataFine, PdataFine, options,
         # If there are too many points in each class to begin training, begin coarsening
         if NdataFine["Data"].shape[0] > options["Imb_size"]:
             NdataCoarse = coarsen(NdataFine, options["n_neighbors"], T=0.6)
+        else:
+            NdataCoarse = NdataFine
 
         if PdataFine["Data"].shape[0] > options["Imb_size"]:
             PdataCoarse = coarsen(PdataFine, options["n_neighbors"], T=0.6)
-
-        traindata = pd.concat([NdataCoarse["Data"], PdataCoarse["Data"]])
-        train_l = pd.concat([NdataCoarse["Label"], PdataCoarse["Label"]])
+        else:
+            PdataCoarse = PdataFine
 
         #Pweight = 1/len(PcoarseLbl,1)
         #Nweight = 1/len(NcoarseLbl,1)
@@ -108,33 +107,33 @@ def MLD(valdata, val_l, level, NdataFine, PdataFine, options,
             coarse = 1
 
         # Go to next iteration of recursion
-        Results, posBorderData, negBorderData, Depth, options, Best, flag, Level_results = \
-            MLD(valdata, val_l, level, NdataCoarse, PdataCoarse, options, max_Depth,
+        model, traindata, train_lbl, max_Depth, options, Best, flag, Level_results = \
+            MLD(traindata, train_lbl, valdata, val_lbl, level, NdataCoarse, PdataCoarse, options, max_Depth,
             NdataFine, PdataFine, coarse)
 
-
         # Once all of the coarsening has been performed, begin refining the dataset
-        traindata, train_l = refine(model, traindata, train_l, options["numBorderPoints"])
+        traindata, train_lbl = refine(model, NdataCoarse, PdataCoarse, options["numBorderPoints"])
 
-        #
-        model = neuralNetwork()
+        valdata1 = "placeholder"
+        val_lbl1 = "placeholder"
 
-        """
-        #Check if current refinement gives best results
+        model = neuralNetwork(traindata, train_lbl, valdata1, val_lbl1, options)
+        Results = Evaluate(model, valdata, val_lbl)
+
+        # Check if current refinement gives best results
         if Results.GMean > Best.GMean:
             Best.GMean = Results.GMean
             Best.Acc = Results.GMean
             Best.Sen = Results.GMean
             Best.Spec = Results.Spec
             Best.level = level
-            Best.difference = Level_size-level; # How much did we refine? 
-        
+            Best.difference = max_Depth-level # How much did we refine?
 
-        #If best was beyond patience level, stop refinement
-        if (Best.level - level) >= patience_level: 
+        # If best was beyond patience level, stop refinement
+        if (Best.level - level) >= options["patience_level"]:
             flag = 1
-    """
-        flag=1
+
+
         Level_results=None
 
-    return model, posBorderData, negBorderData, Depth, options, Best, flag, Level_results
+    return model,traindata, train_lbl, max_Depth, options, Best, flag, Level_results

@@ -1,11 +1,13 @@
 import neuralNetwork
+import numpy as np
 
-def refine(model, Ncoarse, Pcoarse, n_neighbors, options):
+def refine(model, Ncoarse, Pcoarse, Nfine, Pfine, n_neighbors, options):
 
     ''' Updates the training data and trains the neural network. Has 2 parts:
 
-    1. Finds the current border points given the current neural network
-    2. Updates the training data with relevant fine level data
+    1. Finds the border points in the coarse level using the neural network trained at that level
+    2. Finds the nearest neighbors of those points in the fine level data, and adds them together
+    to make a new training dataset
 
     Inputs: 
         <trainedNetwork>: The network that has been trained at the previous level of refinement
@@ -17,38 +19,48 @@ def refine(model, Ncoarse, Pcoarse, n_neighbors, options):
     '''
     
     # Find border points
-    negBorderPoints = findBorderPoints(model, Ncoarse, options["numBorderPoints"],
+    negBorderIndices = findBorderPoints(model, Ncoarse, options["numBorderPoints"],
                                                         options["refineMethod"])
-    posBorderPoints = findBorderPoints(model, Pcoarse, options["numBorderPoints"],
+    posBorderIndices = findBorderPoints(model, Pcoarse, options["numBorderPoints"],
                                                         options["refineMethod"])
     # Update training data
-    Nfine = Update_Train_Data(negBorderPoints, Ncoarse, options["n_neighbors"])
-    Pfine = Update_Train_Data(posBorderPoints, Ncoarse, options["n_neighbors"])
+    Ntrain = Update_Train_Data(negBorderIndices, Nfine, options["n_neighbors"])
+    Ptrain = Update_Train_Data(posBorderIndices, Nfine, options["n_neighbors"])
 
-    return Nfine, Pfine
+    traindata = np.concat([Ntrain["Data"], Ptrain["Data"]])
+    train_lbl = np.concat([Ntrain["Labels"], Ptrain["Labels"]])
 
-def findBorderPoints(model, traindata, train_l, numBorderPoints, refineMethod):
+    return traindata, train_lbl
+
+def findBorderPoints(model, traindata, numBorderPoints, refineMethod):
     ''' Finds which points are the "border points", or pseudo-support vectors. 
     Can be done either using the output of the loss function or by using the flip points.
     
     '''
     if refineMethod == 'border':
         """
-        This should take the output of the neural network
+        This version takes the predictions of the neural network and finds the most "uncertain" ones; 
+        those closest to 0.5. 
         """
-        # TODO: Fix this
-        model.predict(traindata)
-        posBorderPoints, negBorderPoints = numBorderPoints
+        # Get predicted values for training data
+        predictions = model.predict(traindata)
+
+        # Calculate the distances of each point to the threshold (0.5)
+        distances = abs(0.5-predictions)
+
+        # The K smallest distances become our border points
+        borderIndices = sorted(range(len(distances)), key=lambda sub: traindata[sub])[:numBorderPoints]
+        #borderPoints = traindata[borderIndices, :]
 
     #else:
         # Perform "flip point" method 
 
         #posBorderPoints,negBorderPoints= flipPointFunction(numBorderPoints)
 
-    return posBorderPoints, negBorderPoints
+    return borderIndices
 
 
-def Update_Train_Data(borderPoints, coarseData, n_neighbors):
+def Update_Train_Data(borderIndices, fineData, n_neighbors):
     ''' Takes the border points and finds their nearest neighbors in the higher, "fine" level of data.
     These are combined with the border points to make our new dataset .
 
@@ -61,10 +73,9 @@ def Update_Train_Data(borderPoints, coarseData, n_neighbors):
     Outputs:
         <>
     '''
-    
-    #finding support vectors in the nresult
-    #~,nindx = ismember(negBorderData.X,NfineData,'rows')
 
-    fineData = "placeholder"
+    train = {}
+    train["Data"] = fineData["Data"][borderIndices, :]
+    train["Labels"] = fineData["Labels"][borderIndices, :]
 
-    return fineData
+    return train
