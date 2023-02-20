@@ -3,6 +3,7 @@ from coarsen import coarsen
 from neuralNetwork import neuralNetwork
 from refine import refine
 from Evaluate import Evaluate
+from sklearn.model_selection import train_test_split
 
 def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, options,
         NdataCoarse=None, PdataCoarse=None, coarse=0, max_Depth=0, Best=None):
@@ -66,8 +67,14 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
 
         max_Depth = level+1
 
-        valdata1 = "placeholder"
-        val_lbl1 = "placeholder"
+        traindata["Labels"] = train_lbl
+        traindata, valdata1 = train_test_split(traindata, train_size=0.7)
+
+        val_lbl1 = valdata1["Labels"]
+        train_lbl = traindata["Labels"]
+
+        traindata = traindata.drop(["Labels"], axis=1)
+        valdata1 = valdata1.drop(["Labels"], axis=1)
 
         model = neuralNetwork(traindata, train_lbl, valdata1, val_lbl1, options)
         Results = Evaluate(model, valdata, val_lbl)

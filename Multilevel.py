@@ -72,6 +72,9 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
             Ptraindata = traindata[traindata["Label"] == 1]
             Ntraindata = traindata[traindata["Label"] == 0]
 
+            Ptraindata.reset_index(drop=True, inplace=True)
+            Ntraindata.reset_index(drop=True, inplace=True)
+
             Ptrainlbl = Ptraindata["Label"]
             Ntrainlbl = Ntraindata["Label"]
 

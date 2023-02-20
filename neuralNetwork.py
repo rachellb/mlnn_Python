@@ -49,7 +49,7 @@ def neuralNetwork(traindata,train_l,valdata,val_l, options, model=None):
     '''
 
     # Tune architecture of model if no model has been given
-    if model:
+    if model == None:
 
         inputSize = traindata.shape[1]
 
