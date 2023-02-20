@@ -12,12 +12,12 @@ def Evaluate(model, data, labels):
     tn, fp, fn, tp = confusion_matrix(labels, prediction).ravel()
 
     results = {"Loss": score[0],
-               "Accuracy": score[1],
+               "Acc": score[1],
                "AUC": score[4],
-               "Gmean": gmean,
+               "GMean": gmean,
                "Recall": score[3],
                "Precision": score[2],
-               "Specificity": specificity,
+               "Spec": specificity,
                "True Positives": tp,
                "True Negatives": tn,
                "False Positives": fp,

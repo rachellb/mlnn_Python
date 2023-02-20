@@ -1,7 +1,7 @@
 import neuralNetwork
 import pandas as pd
 
-def refine(model, Ncoarse, Pcoarse, Nfine, Pfine, n_neighbors, options):
+def refine(model, Ncoarse, Pcoarse, Nfine, Pfine, options):
 
     ''' Updates the training data and trains the neural network. Has 2 parts:
 
@@ -19,16 +19,19 @@ def refine(model, Ncoarse, Pcoarse, Nfine, Pfine, n_neighbors, options):
     '''
     
     # Find border points
-    negBorderIndices = findBorderPoints(model, Ncoarse, options["numBorderPoints"],
+    negBorderIndices = findBorderPoints(model, Ncoarse["Data"], options["numBorderPoints"],
                                                         options["refineMethod"])
-    posBorderIndices = findBorderPoints(model, Pcoarse, options["numBorderPoints"],
+    posBorderIndices = findBorderPoints(model, Pcoarse["Data"], options["numBorderPoints"],
                                                         options["refineMethod"])
     # Update training data
     Ntrain = Update_Train_Data(negBorderIndices, Nfine, options["n_neighbors"])
-    Ptrain = Update_Train_Data(posBorderIndices, Nfine, options["n_neighbors"])
+    Ptrain = Update_Train_Data(posBorderIndices, Pfine, options["n_neighbors"])
 
     traindata = pd.concat([Ntrain["Data"], Ptrain["Data"]])
     train_lbl = pd.concat([Ntrain["Labels"], Ptrain["Labels"]])
+
+    traindata.reset_index(drop=True, inplace=True)
+    train_lbl.reset_index(drop=True, inplace=True)
 
     return traindata, train_lbl
 
@@ -46,11 +49,10 @@ def findBorderPoints(model, traindata, numBorderPoints, refineMethod):
         predictions = model.predict(traindata)
 
         # Calculate the distances of each point to the threshold (0.5)
-        distances = abs(0.5-predictions)
+        distances = [abs(0.5-x) for x in predictions]
 
         # The K smallest distances become our border points
-        borderIndices = sorted(range(len(distances)), key=lambda sub: traindata[sub])[:numBorderPoints]
-        #borderPoints = traindata[borderIndices, :]
+        borderIndices = sorted(range(len(distances)), key=lambda sub: distances[sub])[:numBorderPoints]
 
     #else:
         # Perform "flip point" method 
@@ -74,8 +76,23 @@ def Update_Train_Data(borderIndices, fineData, n_neighbors):
         <>
     '''
 
+    # Adds in the border points
     train = {}
-    train["Data"] = fineData["Data"][borderIndices, :]
-    train["Labels"] = fineData["Labels"][borderIndices, :]
+    #train["Data"] = fineData["Data"].iloc[borderIndices, :]
+    #train["Labels"] = fineData["Labels"].iloc[borderIndices, :]
+
+    borderData = fineData["Data"].iloc[borderIndices, :]
+    borderLabels = fineData["Labels"][borderIndices]
+
+    # Need to add in the nearest neighbors of the border points
+    neighborsInd = fineData["KNeighbors"][borderIndices, :]
+    neighborData = fineData["Data"].iloc[neighborsInd.flatten()]
+    neighborLbl = fineData["Labels"][neighborsInd.flatten()]
+
+    train["Data"] = pd.concat([borderData, neighborData])
+    train["Labels"] = pd.concat([borderLabels, neighborLbl])
+
+    train["Data"] = train["Data"].drop_duplicates()
+    train["Labels"] = train["Labels"][train["Data"].index]
 
     return train

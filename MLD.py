@@ -4,9 +4,10 @@ from neuralNetwork import neuralNetwork
 from refine import refine
 from Evaluate import Evaluate
 from sklearn.model_selection import train_test_split
+from testNeuralNetwork import testNetwork
 
 def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, options,
-        NdataCoarse=None, PdataCoarse=None, coarse=0, max_Depth=0, Best=None):
+        NdataCoarse=None, PdataCoarse=None, coarse=0, max_Depth=0, Best={}):
 
     ''' A recursive function that iteratively coarsens the data,
     trains the network once we hit the coarsest level, then begins refinement.
@@ -60,12 +61,11 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
    '''
 
     DATA_size = traindata.shape[0]
+    max_Depth = max_Depth + 1
 
     # If the combined positive and negative data is below the maximum training threshold, 
     # begin training. 
     if (DATA_size < options["Upperlim"]) | (coarse == 1):
-
-        max_Depth = level+1
 
         traindata["Labels"] = train_lbl
         traindata, valdata1 = train_test_split(traindata, train_size=0.7)
@@ -76,18 +76,25 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
         traindata = traindata.drop(["Labels"], axis=1)
         valdata1 = valdata1.drop(["Labels"], axis=1)
 
-        model = neuralNetwork(traindata, train_lbl, valdata1, val_lbl1, options)
-        Results = Evaluate(model, valdata, val_lbl)
+        #model = neuralNetwork(traindata, train_lbl, valdata1, val_lbl1, options)
+        model = testNetwork(traindata, train_lbl, valdata1, val_lbl1)
+        Level_results = Evaluate(model, valdata, val_lbl)
 
         # Indicate that training of the coarsest section is done.
         coarse = 0
 
+        # A flag for stopping refinement
+        flag = 0
+
         # Results of best trained neural network so far. 
         Best["level"] = level+1
-        Best["GMean"] = Results["GMean"]
-        Best["Acc"] = Results["Acc"]
-        Best["Sen"] = Results["Sen"]
-        Best["Spec"] = Results["Spec"]
+        Best["GMean"] = Level_results["GMean"]
+        Best["Acc"] = Level_results["Acc"]
+        Best["Recall"] = Level_results["Recall"]
+        Best["Spec"] = Level_results["Spec"]
+        Best["model"] = model
+
+        return model, traindata, train_lbl, max_Depth, options, Best, flag, Level_results
 
     # Else, begin coarsening the data
     else:
@@ -122,29 +129,40 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
             MLD(traindata, train_lbl, valdata, val_lbl, level, NdataCoarse, PdataCoarse, options,
             NdataFine, PdataFine, coarse, max_Depth)
 
+        #TODO: Remove this once you're done with testing
+        flag = 1
+
+
+        if flag == 1:
+            return model, traindata, train_lbl, max_Depth, options, Best, flag, Level_results
+
         # Once all of the coarsening has been performed, begin refining the dataset
-        traindata, train_lbl = refine(model, NdataCoarse, PdataCoarse, options["numBorderPoints"])
+        traindata, train_lbl = refine(model, NdataCoarse, PdataCoarse, NdataFine, PdataFine, options)
 
-        valdata1 = "placeholder"
-        val_lbl1 = "placeholder"
+        traindata["Labels"] = train_lbl
+        traindata, valdata1 = train_test_split(traindata, train_size=0.7)
 
-        model = neuralNetwork(traindata, train_lbl, valdata1, val_lbl1, options)
-        Results = Evaluate(model, valdata, val_lbl)
+        val_lbl1 = valdata1["Labels"]
+        train_lbl = traindata["Labels"]
+
+        traindata = traindata.drop(["Labels"], axis=1)
+        valdata1 = valdata1.drop(["Labels"], axis=1)
+
+        model = neuralNetwork(traindata, train_lbl, valdata1, val_lbl1, options, model)
+        Level_results = Evaluate(model, valdata, val_lbl)
 
         # Check if current refinement gives best results
-        if Results.GMean > Best.GMean:
-            Best.GMean = Results.GMean
-            Best.Acc = Results.GMean
-            Best.Sen = Results.GMean
-            Best.Spec = Results.Spec
-            Best.level = level
-            Best.difference = max_Depth-level # How much did we refine?
+        if Level_results["GMean"] > Best["GMean"]:
+            Best["GMean"] = Level_results["GMean"]
+            Best["Acc"] = Level_results["Acc"]
+            Best["Recall"] = Level_results["Recall"]
+            Best["Spec"] = Level_results["Spec"]
+            Best["level"] = level
+            Best["difference"] = max_Depth-level # How much did we refine?
+            Best["model"] = model
 
         # If best was beyond patience level, stop refinement
-        if (Best.level - level) >= options["patience_level"]:
+        if (Best["level"] - level) >= options["patienceLevel"]:
             flag = 1
 
-
-        Level_results=None
-
-    return model, traindata, train_lbl, max_Depth, options, Best, flag, Level_results
+        return model, traindata, train_lbl, max_Depth, options, Best, flag, Level_results

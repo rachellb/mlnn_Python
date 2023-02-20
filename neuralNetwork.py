@@ -59,6 +59,9 @@ def neuralNetwork(traindata,train_l,valdata,val_l, options, model=None):
         pos = class_weight_dict[1]
         neg = class_weight_dict[0]
 
+        train_l = train_l.values.flatten()
+        val_l = val_l.values.flatten()
+
         # If running bias initialization
         bias = np.log(pos / neg)
 

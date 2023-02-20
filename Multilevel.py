@@ -45,7 +45,7 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
 
     # Model Training Options
     options = {"n_neighbors": n_neighbors, "Upperlim": Upperlim, "Model_Selec": Model_Selec, "Imb_size": Imb_size,
-               "loss": loss, "alpha": alpha, "gamma": gamma,"numBorderPoints": numBorderPoints,
+               "loss": loss, "alpha": alpha, "gamma": gamma, "numBorderPoints": numBorderPoints,
                "refineMethod": refineMethod, "epochs": epochs, "batch_size": batch_size, "Dropout": Dropout,
                "BatchNorm": batchnorm,  "factor": factor, "patienceLevel": patienceLevel, "weights": weights}
 
@@ -97,7 +97,8 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
             model, posBorderData, negBorderData, max_Depth, options, Best, flag, Level_results =\
                 MLD(traindata, train_lbl, valdata, val_lbl, level, negativeData, positiveData, options)
 
-            res = Evaluate(model, testdata, test_lbl)
+            res1 = Evaluate(Best["model"], testdata, test_lbl)
+            res2 = Evaluate(Best["model"], valdata, val_lbl)
             aveCoarsenDepth = np.mean(max_Depth)
 
         else:
@@ -140,4 +141,4 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
 
 
 if __name__ == "__main__":
-    Multilevel(data="../Hypothyroid.csv", dataName="Hypothyroid", multilevel=1)
+    Multilevel(data="../Hypothyroid.csv", dataName="Hypothyroid", multilevel=1, epochs=100, patienceLevel=2)
