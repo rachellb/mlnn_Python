@@ -72,8 +72,15 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
             Ptraindata = traindata[traindata["Label"] == 1]
             Ntraindata = traindata[traindata["Label"] == 0]
 
-            Ptrainlbl = Ptraindata.drop(["Label"], axis=1)
-            Ntrainlbl = Ntraindata.drop(["Label"], axis=1)
+            Ptrainlbl = Ptraindata["Label"]
+            Ntrainlbl = Ntraindata["Label"]
+
+            Ptraindata = Ptraindata.drop(["Label"], axis=1)
+            Ntraindata = Ntraindata.drop(["Label"], axis=1)
+
+            # Training data used separately
+            train_lbl = traindata["Label"]
+            traindata = traindata.drop(["Label"], axis=1)
 
             # Create the KNN graph that will be used in the finest layer of multilevel learning
             nNeighbors, nAdjMatrix = NearestNeighborSearch(Ntraindata, n_neighbors)
@@ -85,7 +92,7 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
 
             level = 0
             model, posBorderData, negBorderData, max_Depth, options, Best, flag, Level_results =\
-                MLD(valdata, val_lbl, level, negativeData, positiveData, options)
+                MLD(traindata, train_lbl, valdata, val_lbl, level, negativeData, positiveData, options)
 
             res = Evaluate(model, testdata, test_lbl)
             aveCoarsenDepth = np.mean(max_Depth)

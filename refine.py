@@ -1,5 +1,5 @@
 import neuralNetwork
-import numpy as np
+import pandas as pd
 
 def refine(model, Ncoarse, Pcoarse, Nfine, Pfine, n_neighbors, options):
 
@@ -27,8 +27,8 @@ def refine(model, Ncoarse, Pcoarse, Nfine, Pfine, n_neighbors, options):
     Ntrain = Update_Train_Data(negBorderIndices, Nfine, options["n_neighbors"])
     Ptrain = Update_Train_Data(posBorderIndices, Nfine, options["n_neighbors"])
 
-    traindata = np.concat([Ntrain["Data"], Ptrain["Data"]])
-    train_lbl = np.concat([Ntrain["Labels"], Ptrain["Labels"]])
+    traindata = pd.concat([Ntrain["Data"], Ptrain["Data"]])
+    train_lbl = pd.concat([Ntrain["Labels"], Ptrain["Labels"]])
 
     return traindata, train_lbl
 

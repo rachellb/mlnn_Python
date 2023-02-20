@@ -35,7 +35,7 @@ def coarsen(fineData, n_neighbors=10, metric='euclidean', T=0.6):
     coarseIndicies = DomSetCoarsening(fineData["AdjMatrix"], T)
 
     coarseData["Data"] = fineData["Data"].iloc[coarseIndicies, :]
-    coarseData["Labels"] = fineData["Labels"].iloc[coarseIndicies, :]
+    coarseData["Labels"] = fineData[coarseIndicies, "Labels"]
 
     # Calculate nearest neighbors of this new coarse dataset.
     coarseData["KNeighbors"], coarseData["AdjMatrix"] = NearestNeighborSearch(coarseData["Data"], n_neighbors, metric)

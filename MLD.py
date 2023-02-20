@@ -62,7 +62,7 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
 
     # If the combined positive and negative data is below the maximum training threshold, 
     # begin training. 
-    if DATA_size < options["Upperlim"] | coarse == 1:
+    if (DATA_size < options["Upperlim"]) | (coarse == 1):
 
         max_Depth = level+1
 
@@ -106,10 +106,14 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
                 (NdataCoarse["Data"].shape[0] == NdataFine["Data"].shape[0]):
             coarse = 1
 
+
+        traindata = pd.concat([NdataCoarse["Data"], PdataCoarse["Data"]])
+        train_lbl = pd.concat([NdataCoarse["Labels"], PdataCoarse["Labels"]])
+
         # Go to next iteration of recursion
         model, traindata, train_lbl, max_Depth, options, Best, flag, Level_results = \
-            MLD(traindata, train_lbl, valdata, val_lbl, level, NdataCoarse, PdataCoarse, options, max_Depth,
-            NdataFine, PdataFine, coarse)
+            MLD(traindata, train_lbl, valdata, val_lbl, level, NdataCoarse, PdataCoarse, options,
+            NdataFine, PdataFine, coarse, max_Depth)
 
         # Once all of the coarsening has been performed, begin refining the dataset
         traindata, train_lbl = refine(model, NdataCoarse, PdataCoarse, options["numBorderPoints"])
@@ -136,4 +140,4 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
 
         Level_results=None
 
-    return model,traindata, train_lbl, max_Depth, options, Best, flag, Level_results
+    return model, traindata, train_lbl, max_Depth, options, Best, flag, Level_results
