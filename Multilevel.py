@@ -1,5 +1,4 @@
 import pandas as pd
-from Split import Split
 from MLD import MLD
 from NearestNeighborSearch import NearestNeighborSearch
 from sklearn.model_selection import train_test_split
@@ -9,6 +8,8 @@ import numpy as np
 from neuralNetwork import neuralNetwork
 from Evaluate import Evaluate
 from testNeuralNetwork import testNetwork
+from averageResults import averageResults
+
 
 def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10,
                Upperlim=500, Imb_size=300, Model_Selec=1, numBorderPoints=10,  loss="cross", alpha=0.5, gamma=4,
@@ -41,7 +42,7 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
     data["Label"] = np.where(data["Label"] == 2, 0, 1)
 
     Results = []
-    totalTime = ()
+    totalTime = []
 
     # Model Training Options
     options = {"n_neighbors": n_neighbors, "Upperlim": Upperlim, "Model_Selec": Model_Selec, "Imb_size": Imb_size,
@@ -53,9 +54,9 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
         start = time.time()
 
         # Create train/test data
-        traindata, testdata = train_test_split(data, train_size=0.7)
+        traindata, testdata = train_test_split(data, train_size=0.9)
         # Create train/validation data using the train dataset
-        traindata, valdata = train_test_split(traindata, train_size=0.7)
+        traindata, valdata = train_test_split(traindata, train_size=0.9)
 
         # Validation is kept separate for determining when to stop refinement
         val_lbl = valdata["Label"]
@@ -97,9 +98,9 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
             model, posBorderData, negBorderData, max_Depth, options, Best, flag, Level_results =\
                 MLD(traindata, train_lbl, valdata, val_lbl, level, negativeData, positiveData, options)
 
-            res1 = Evaluate(Best["model"], testdata, test_lbl)
-            res2 = Evaluate(Best["model"], valdata, val_lbl)
-            aveCoarsenDepth = np.mean(max_Depth)
+            res = Evaluate(Best["model"], testdata, test_lbl)
+            #res2 = Evaluate(Best["model"], valdata, val_lbl)
+            Results.append(res)
 
         else:
 
@@ -110,35 +111,45 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
             model = testNetwork(traindata, train_lbl, valdata, val_lbl)
             res = Evaluate(model, testdata, test_lbl)
             Results.append(res)
-            aveCoarsenDepth = 0
+            max_Depth = 0
 
-        """
         end = time.time()
         totalTime.append(start-end) 
 
+    Results = averageResults(Results)
+    aveCoarsenDepth = np.mean(max_Depth)
     averageTime = np.mean(totalTime)     
     # Save results into an excel file
     formatFilename = "Results/%s/Multilevel_%depochs%dRefine%sBorderPoints%dNeighbors%dLoss%s%smaxIte%d.xlsx"
-    filename = formatFilename % (dataName, Multilevel, epochs, refineMethod, numBorderPoints, n_neighbors, loss, label, max_ite)
+    filename = formatFilename % (dataName, multilevel, epochs, refineMethod, numBorderPoints, n_neighbors, loss, label, max_ite)
 
+    """
     resultsTable = pd.DataFrame({
-        'GMean': Results.GMean, 
-        'Acc': Results.Acc, 
-        'Sen': Results.Sen,  
-        'Spec': Results.Spec, 
-        'stdGMean': Results.stdGMean, 
-        'stdAcc': Results.stdAcc, 
-        'stdSen': Results.stdSen,  
-        'stdSpec': Results.stdSpec, 
+        'GMean': Results["GMean"],
+        'Acc': Results["Acc"],
+        'Recall': Results["Recall"],
+        'Spec': Results["Spec"],
+        #'stdGMean': Results["stdGMean"],
+        #'stdAcc': Results["stdAcc"],
+        #'stdSen': Results["stdSen"],
+        #'stdSpec': Results["stdSpec"],
         'Time (sec)': averageTime, 
         'Average Coarsening Depth': aveCoarsenDepth, 
-        'Refined': Results.refined
-    }, columns=['GMean','Acc', 'Sen', 'Spec','stdGMean','stdAcc','stdSen', 'stdSpec', 'Time (sec)', 'Depth', 'Refined'])
+        #'Refined': Results["Refined"]
+    }, columns=['GMean','Acc', 'Recall', 'Spec','stdGMean','stdAcc','stdSen', 'stdSpec', 'Time (sec)', 'Depth', 'Refined'])
+    """
+
+    resultsTable = pd.DataFrame({
+        'GMean': [Results["GMean"]],
+        'Acc': [Results["Acc"]],
+        'Recall': [Results["Recall"]],
+        'Spec': [Results["Spec"]],
+        'Time (sec)': [averageTime],
+        'Average Coarsening Depth': [aveCoarsenDepth],
+    }, columns=['GMean', 'Acc', 'Recall', 'Spec', 'Time (sec)', 'Depth'])
 
     resultsTable.to_excel(filename, sheet_name='Sheet1', index=False)
 
-"""
-
 
 if __name__ == "__main__":
-    Multilevel(data="../Hypothyroid.csv", dataName="Hypothyroid", multilevel=1, epochs=100, patienceLevel=2)
+    Multilevel(data="../Hypothyroid.csv", dataName="Hypothyroid", multilevel=1, epochs=100, patienceLevel=1, label="test", max_ite=100)

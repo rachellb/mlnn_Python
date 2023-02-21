@@ -92,6 +92,7 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
         Best["Acc"] = Level_results["Acc"]
         Best["Recall"] = Level_results["Recall"]
         Best["Spec"] = Level_results["Spec"]
+        Best["difference"] = max_Depth - level
         Best["model"] = model
 
         return model, traindata, train_lbl, max_Depth, options, Best, flag, Level_results
