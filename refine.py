@@ -45,6 +45,7 @@ def findBorderPoints(model, traindata, numBorderPoints, refineMethod):
         This version takes the predictions of the neural network and finds the most "uncertain" ones; 
         those closest to 0.5. 
         """
+
         # Get predicted values for training data
         predictions = model.predict(traindata)
 
@@ -92,7 +93,8 @@ def Update_Train_Data(borderIndices, fineData, n_neighbors):
     train["Data"] = pd.concat([borderData, neighborData])
     train["Labels"] = pd.concat([borderLabels, neighborLbl])
 
-    train["Data"] = train["Data"].drop_duplicates()
-    train["Labels"] = train["Labels"][train["Data"].index]
+    #train["Data"] = train["Data"].drop_duplicates()
+    train["Data"] = train["Data"][~train["Data"].index.duplicated(keep='first')]
+    train["Labels"] = train["Labels"][~train["Labels"].index.duplicated(keep='first')]
 
     return train

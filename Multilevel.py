@@ -9,7 +9,8 @@ from neuralNetwork import neuralNetwork
 from Evaluate import Evaluate
 from testNeuralNetwork import testNetwork
 from averageResults import averageResults
-
+import tensorflow as tf
+import keras
 
 def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10,
                Upperlim=500, Imb_size=300, Model_Selec=1, numBorderPoints=10,  loss="cross", alpha=0.5, gamma=4,
@@ -41,6 +42,10 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
     data = pd.read_csv(data, index_col=False)
     data["Label"] = np.where(data["Label"] == 2, 0, 1)
 
+    formatFilename = "Results/%s/Multilevel_%depochs%dRefine%sBorderPoints%dNeighbors%dLoss%s%smaxIte%d.xlsx"
+    filename = formatFilename % (
+    dataName, multilevel, epochs, refineMethod, numBorderPoints, n_neighbors, loss, label, max_ite)
+
     Results = []
     totalTime = []
 
@@ -48,15 +53,19 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
     options = {"n_neighbors": n_neighbors, "Upperlim": Upperlim, "Model_Selec": Model_Selec, "Imb_size": Imb_size,
                "loss": loss, "alpha": alpha, "gamma": gamma, "numBorderPoints": numBorderPoints,
                "refineMethod": refineMethod, "epochs": epochs, "batch_size": batch_size, "Dropout": Dropout,
-               "BatchNorm": batchnorm,  "factor": factor, "patienceLevel": patienceLevel, "weights": weights}
+               "BatchNorm": batchnorm,  "factor": factor, "patienceLevel": patienceLevel, "weights": weights,
+               "dataName": dataName, "max_ite": max_ite, "multilevel": multilevel}
 
     for ite in range(1, max_ite+1): 
         start = time.time()
 
+        # To make sure not re-running the same neural network
+        tf.keras.backend.clear_session()
+
         # Create train/test data
-        traindata, testdata = train_test_split(data, train_size=0.9)
+        traindata, testdata = train_test_split(data, stratify=data["Label"], train_size=0.9)
         # Create train/validation data using the train dataset
-        traindata, valdata = train_test_split(traindata, train_size=0.9)
+        traindata, valdata = train_test_split(traindata, stratify=traindata["Label"], train_size=0.9)
 
         # Validation is kept separate for determining when to stop refinement
         val_lbl = valdata["Label"]
@@ -98,8 +107,11 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
             model, posBorderData, negBorderData, max_Depth, options, Best, flag, Level_results =\
                 MLD(traindata, train_lbl, valdata, val_lbl, level, negativeData, positiveData, options)
 
-            res = Evaluate(Best["model"], testdata, test_lbl)
-            #res2 = Evaluate(Best["model"], valdata, val_lbl)
+            formatFilename = "models/%s/best/"
+            filename = formatFilename % (options["dataName"])
+            bestModel = keras.models.load_model(filename)
+
+            res = Evaluate(bestModel, testdata, test_lbl)
             Results.append(res)
 
         else:
@@ -108,20 +120,19 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
             traindata = traindata.drop(["Label"], axis=1)
 
             #model = neuralNetwork(traindata, train_lbl, valdata, val_lbl, options)
-            model = testNetwork(traindata, train_lbl, valdata, val_lbl)
+            model = testNetwork(traindata, train_lbl, valdata, val_lbl, options)
+
             res = Evaluate(model, testdata, test_lbl)
             Results.append(res)
             max_Depth = 0
 
         end = time.time()
-        totalTime.append(start-end) 
+        totalTime.append(end-start)
 
     Results = averageResults(Results)
     aveCoarsenDepth = np.mean(max_Depth)
     averageTime = np.mean(totalTime)     
     # Save results into an excel file
-    formatFilename = "Results/%s/Multilevel_%depochs%dRefine%sBorderPoints%dNeighbors%dLoss%s%smaxIte%d.xlsx"
-    filename = formatFilename % (dataName, multilevel, epochs, refineMethod, numBorderPoints, n_neighbors, loss, label, max_ite)
 
     """
     resultsTable = pd.DataFrame({
@@ -152,4 +163,4 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
 
 
 if __name__ == "__main__":
-    Multilevel(data="../Hypothyroid.csv", dataName="Hypothyroid", multilevel=1, epochs=100, patienceLevel=1, label="test", max_ite=100)
+    Multilevel(data="../preOK.csv", dataName="preOK", multilevel=1, epochs=1, patienceLevel=1, label="testModelSave", max_ite=1, batch_size=256)

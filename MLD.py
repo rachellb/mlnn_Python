@@ -68,7 +68,7 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
     if (DATA_size < options["Upperlim"]) | (coarse == 1):
 
         traindata["Labels"] = train_lbl
-        traindata, valdata1 = train_test_split(traindata, train_size=0.7)
+        traindata, valdata1 = train_test_split(traindata, stratify=train_lbl, train_size=0.9)
 
         val_lbl1 = valdata1["Labels"]
         train_lbl = traindata["Labels"]
@@ -77,7 +77,8 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
         valdata1 = valdata1.drop(["Labels"], axis=1)
 
         #model = neuralNetwork(traindata, train_lbl, valdata1, val_lbl1, options)
-        model = testNetwork(traindata, train_lbl, valdata1, val_lbl1)
+        model = testNetwork(traindata, train_lbl, valdata1, val_lbl1, options)
+
         Level_results = Evaluate(model, valdata, val_lbl)
 
         # Indicate that training of the coarsest section is done.
@@ -93,7 +94,12 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
         Best["Recall"] = Level_results["Recall"]
         Best["Spec"] = Level_results["Spec"]
         Best["difference"] = max_Depth - level
-        Best["model"] = model
+
+
+        # Save the model for future use
+        formatFilename = "models/%s/best"
+        filename = formatFilename % (options["dataName"])
+        model.save(filename)
 
         return model, traindata, train_lbl, max_Depth, options, Best, flag, Level_results
 
@@ -131,8 +137,7 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
             NdataFine, PdataFine, coarse, max_Depth)
 
         #TODO: Remove this once you're done with testing
-        flag = 1
-
+        #flag = 1
 
         if flag == 1:
             return model, traindata, train_lbl, max_Depth, options, Best, flag, Level_results
@@ -141,7 +146,7 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
         traindata, train_lbl = refine(model, NdataCoarse, PdataCoarse, NdataFine, PdataFine, options)
 
         traindata["Labels"] = train_lbl
-        traindata, valdata1 = train_test_split(traindata, train_size=0.7)
+        traindata, valdata1 = train_test_split(traindata, stratify=train_lbl, train_size=0.9)
 
         val_lbl1 = valdata1["Labels"]
         train_lbl = traindata["Labels"]
@@ -160,7 +165,11 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
             Best["Spec"] = Level_results["Spec"]
             Best["level"] = level
             Best["difference"] = max_Depth-level # How much did we refine?
-            Best["model"] = model
+
+            # Save the model for future use
+            formatFilename = "models/%s/best"
+            filename = formatFilename % (options["dataName"])
+            model.save(filename)
 
         # If best was beyond patience level, stop refinement
         if (Best["level"] - level) >= options["patienceLevel"]:
