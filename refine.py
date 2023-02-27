@@ -79,8 +79,6 @@ def Update_Train_Data(borderIndices, fineData, n_neighbors):
 
     # Adds in the border points
     train = {}
-    #train["Data"] = fineData["Data"].iloc[borderIndices, :]
-    #train["Labels"] = fineData["Labels"].iloc[borderIndices, :]
 
     borderData = fineData["Data"].iloc[borderIndices, :]
     borderLabels = fineData["Labels"][borderIndices]

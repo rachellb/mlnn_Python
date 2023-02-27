@@ -32,7 +32,7 @@ def coarsen(fineData, n_neighbors=10, metric='euclidean', T=0.6):
     coarseData = {}
 
     # Calculate which points will be in coarsened dataset
-    coarseIndicies = DomSetCoarsening(fineData["AdjMatrix"], T)
+    coarseIndicies = DomSetCoarsening(fineData, T)
 
     coarseData["Data"] = fineData["Data"].iloc[coarseIndicies, :]
     coarseData["Labels"] = fineData["Labels"][coarseIndicies]
@@ -41,11 +41,13 @@ def coarsen(fineData, n_neighbors=10, metric='euclidean', T=0.6):
     coarseData["Labels"].reset_index(drop=True, inplace=True)
 
     # Calculate nearest neighbors of this new coarse dataset.
-    coarseData["KNeighbors"], coarseData["AdjMatrix"] = NearestNeighborSearch(coarseData["Data"], n_neighbors, metric)
+    #coarseData["KNeighbors"], coarseData["AdjMatrix"] = NearestNeighborSearch(coarseData["Data"], n_neighbors, metric)
+
+    coarseData["KNeighbors"] = NearestNeighborSearch(coarseData["Data"], n_neighbors, metric)
 
     return coarseData
 
-def DomSetCoarsening(AdjMatrix, T=0.6):
+def DomSetCoarsening(fineData, T=0.6):
 
     '''
     This function takes in the adjacency matrix and creates a maximum independent set.
@@ -63,7 +65,7 @@ def DomSetCoarsening(AdjMatrix, T=0.6):
         Contains a list of indicies of points that remain in the coarse set. 
     '''
 
-    n, m = AdjMatrix.shape # Size of indicator matrix.
+    n, m = fineData["KNeighbors"].shape # Size of indicator matrix.
     domSet = []
 
     # Until we have a desired fraction (T) of the fine data, repeat this loop
@@ -75,7 +77,8 @@ def DomSetCoarsening(AdjMatrix, T=0.6):
             i = np.random.choice(toPick) # Pick one of those at random
             domSet.append(i) # add it to the independent set list
             coarseOptions[i] = 0 # remove it from the list of options
-            neigh = np.where(AdjMatrix[i,:])[0] # Find the neighors of that random point
+            #neigh = np.where(fineData["AdjMatrix"][i,:])[0] # Find the neighors of that random point
+            neigh = fineData["KNeighbors"][i,:]
             coarseOptions[neigh] = 0 # Remove all neighbors from the options list as well
     
     return domSet

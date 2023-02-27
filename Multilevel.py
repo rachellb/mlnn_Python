@@ -11,6 +11,8 @@ from testNeuralNetwork import testNetwork
 from averageResults import averageResults
 import tensorflow as tf
 import keras
+import pathlib # Create director if it does not exist (requires python 3.5+)
+
 
 def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10,
                Upperlim=500, Imb_size=300, Model_Selec=1, numBorderPoints=10,  loss="cross", alpha=0.5, gamma=4,
@@ -42,10 +44,6 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
     data = pd.read_csv(data, index_col=False)
     data["Label"] = np.where(data["Label"] == 2, 0, 1)
 
-    formatFilename = "Results/%s/Multilevel_%depochs%dRefine%sBorderPoints%dNeighbors%dLoss%s%smaxIte%d.xlsx"
-    filename = formatFilename % (
-    dataName, multilevel, epochs, refineMethod, numBorderPoints, n_neighbors, loss, label, max_ite)
-
     Results = []
     totalTime = []
 
@@ -56,7 +54,7 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
                "BatchNorm": batchnorm,  "factor": factor, "patienceLevel": patienceLevel, "weights": weights,
                "dataName": dataName, "max_ite": max_ite, "multilevel": multilevel}
 
-    for ite in range(1, max_ite+1): 
+    for ite in range(1, max_ite+1):
         start = time.time()
 
         # To make sure not re-running the same neural network
@@ -95,13 +93,12 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
             train_lbl = traindata["Label"]
             traindata = traindata.drop(["Label"], axis=1)
 
-            # Create the KNN graph that will be used in the finest layer of multilevel learning
-            nNeighbors, nAdjMatrix = NearestNeighborSearch(Ntraindata, n_neighbors)
-            pNeighbors, pAdjMatrix = NearestNeighborSearch(Ptraindata, n_neighbors)
+            nNeighbors = NearestNeighborSearch(Ntraindata, n_neighbors)
+            pNeighbors = NearestNeighborSearch(Ptraindata, n_neighbors)
 
             # Put everything into a dictionary to keep all relevant info together
-            negativeData = {"Data": Ntraindata, "Labels": Ntrainlbl, "KNeighbors": nNeighbors, "AdjMatrix": nAdjMatrix}
-            positiveData = {"Data": Ptraindata, "Labels": Ptrainlbl, "KNeighbors": pNeighbors, "AdjMatrix": pAdjMatrix}
+            negativeData = {"Data": Ntraindata, "Labels": Ntrainlbl, "KNeighbors": nNeighbors}
+            positiveData = {"Data": Ptraindata, "Labels": Ptrainlbl, "KNeighbors": pNeighbors}
 
             level = 0
             model, posBorderData, negBorderData, max_Depth, options, Best, flag, Level_results =\
@@ -159,8 +156,16 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
         'Average Coarsening Depth': [aveCoarsenDepth],
     }, columns=['GMean', 'Acc', 'Recall', 'Spec', 'Time (sec)', 'Depth'])
 
+    formatDirect = "Results/%s/" % options["dataName"]
+    pathlib.Path(formatDirect).mkdir(parents=True, exist_ok=True)
+
+    formatFilename = "Multilevel_%depochs%dRefine%sBorderPoints%dNeighbors%dLoss%s%smaxIte%d.xlsx"
+    filename = formatFilename % (multilevel, epochs, refineMethod, numBorderPoints, n_neighbors, loss, label, max_ite)
+    filename = formatDirect + filename
+
     resultsTable.to_excel(filename, sheet_name='Sheet1', index=False)
 
 
 if __name__ == "__main__":
-    Multilevel(data="../preOK.csv", dataName="preOK", multilevel=1, epochs=1, patienceLevel=1, label="testModelSave", max_ite=1, batch_size=256)
+    Multilevel(data="../preOK.csv", dataName="preOK", multilevel=1, epochs=30,
+               patienceLevel=1, label="preArch", max_ite=1, batch_size=256, numBorderPoints=50)

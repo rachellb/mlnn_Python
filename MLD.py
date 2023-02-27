@@ -127,7 +127,6 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
                 (NdataCoarse["Data"].shape[0] == NdataFine["Data"].shape[0]):
             coarse = 1
 
-
         traindata = pd.concat([NdataCoarse["Data"], PdataCoarse["Data"]])
         train_lbl = pd.concat([NdataCoarse["Labels"], PdataCoarse["Labels"]])
 
@@ -135,9 +134,6 @@ def MLD(traindata, train_lbl, valdata, val_lbl, level, NdataFine, PdataFine, opt
         model, traindata, train_lbl, max_Depth, options, Best, flag, Level_results = \
             MLD(traindata, train_lbl, valdata, val_lbl, level, NdataCoarse, PdataCoarse, options,
             NdataFine, PdataFine, coarse, max_Depth)
-
-        #TODO: Remove this once you're done with testing
-        #flag = 1
 
         if flag == 1:
             return model, traindata, train_lbl, max_Depth, options, Best, flag, Level_results

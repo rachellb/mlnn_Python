@@ -23,6 +23,7 @@ def NearestNeighborSearch(data, n_neighbors=10, metric='euclidean'):
     index = NNDescent(dataMatrix, metric=metric)
     neighbors = index.neighbor_graph[0][:, 1:(n_neighbors+1)] # Select only the k nearest neighbors
 
+    """
     # Create a new indicator matrix for this coarse level
     AdjMatrix = np.zeros((dataMatrix.shape[0], dataMatrix.shape[0]))
     for point in range(dataMatrix.shape[0]):
@@ -31,4 +32,6 @@ def NearestNeighborSearch(data, n_neighbors=10, metric='euclidean'):
             # Indicate that they are neighbors in the matrix
             AdjMatrix[neighbors[point, neighbor], point] = 1
 
-    return neighbors, AdjMatrix
+    """
+
+    return neighbors #, AdjMatrix
