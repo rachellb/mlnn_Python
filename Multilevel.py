@@ -44,6 +44,12 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
     data = pd.read_csv(data, index_col=False)
     data["Label"] = np.where(data["Label"] == 2, 0, 1)
 
+    # TODO: Remove when finished testing
+    # Bad practice, but mostly just to test something
+    from sklearn.preprocessing import StandardScaler
+    scale = StandardScaler()
+    data.iloc[:, 0:-1] = scale.fit_transform(data.iloc[:, 0:-1])
+
     Results = []
     totalTime = []
 
@@ -167,5 +173,5 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
 
 
 if __name__ == "__main__":
-    Multilevel(data="../preOK.csv", dataName="preOK", multilevel=1, epochs=30,
-               patienceLevel=1, label="preArch", max_ite=1, batch_size=256, numBorderPoints=50)
+    Multilevel(data="../Hypothyroid.csv", dataName="Hypothyroid", multilevel=1, epochs=1,
+               patienceLevel=1, label="amg", max_ite=1, batch_size=256, numBorderPoints=50)

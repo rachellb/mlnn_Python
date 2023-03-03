@@ -1,7 +1,8 @@
 import numpy as np
 from pynndescent  import NNDescent
+import hnswlib
 
-def NearestNeighborSearch(data, n_neighbors=10, metric='euclidean'):
+def NearestNeighborSearch(data, n_neighbors=10, metric='euclidean', method="hnsw"):
 
     """
     Inputs:
@@ -19,19 +20,29 @@ def NearestNeighborSearch(data, n_neighbors=10, metric='euclidean'):
                                the corresponding point in the matrix.  
     """
 
-    dataMatrix = data.values
-    index = NNDescent(dataMatrix, metric=metric)
-    neighbors = index.neighbor_graph[0][:, 1:(n_neighbors+1)] # Select only the k nearest neighbors
+    if method == "nndescent":
+        dataMatrix = data.values
+        index = NNDescent(dataMatrix, metric=metric)
+        neighbors = index.neighbor_graph[0][:, 1:(n_neighbors+1)] # Select only the k nearest neighbors
 
-    """
-    # Create a new indicator matrix for this coarse level
-    AdjMatrix = np.zeros((dataMatrix.shape[0], dataMatrix.shape[0]))
-    for point in range(dataMatrix.shape[0]):
-        # For each neighbor of the given point
-        for neighbor in range(neighbors[point].shape[0]):
-            # Indicate that they are neighbors in the matrix
-            AdjMatrix[neighbors[point, neighbor], point] = 1
+    else:
+        dim = data.shape[1]
+        num_elements = data.shape[0]
+        ids = np.arange(num_elements)
 
-    """
+        # Declaring index
+        p = hnswlib.Index(space='l2', dim=dim)  # possible options are l2, cosine or ip
 
-    return neighbors #, AdjMatrix
+        # Initializing index - the maximum number of elements should be known beforehand
+        p.init_index(max_elements=num_elements, ef_construction=200, M=16)
+
+        # Element insertion (can be called several times):
+        p.add_items(data, ids)
+
+        # Controlling the recall by setting ef:
+        p.set_ef(50)  # ef should always be > k
+
+        # Query dataset, k - number of the closest elements (returns 2 numpy arrays)
+        neighbors, distances = p.knn_query(data, k=n_neighbors)
+
+    return neighbors

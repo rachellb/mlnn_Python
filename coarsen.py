@@ -1,6 +1,8 @@
 import numpy as np
 from NearestNeighborSearch import NearestNeighborSearch
 
+import time
+
 def coarsen(fineData, n_neighbors=10, metric='euclidean', T=0.6):
     ''' The primary coarsening function. Uses dominant set to coarsen currently.
     Inputs:
@@ -32,7 +34,7 @@ def coarsen(fineData, n_neighbors=10, metric='euclidean', T=0.6):
     coarseData = {}
 
     # Calculate which points will be in coarsened dataset
-    coarseIndicies = DomSetCoarsening(fineData, T)
+    coarseIndicies = iterativeIndependentSet(fineData, T)
 
     coarseData["Data"] = fineData["Data"].iloc[coarseIndicies, :]
     coarseData["Labels"] = fineData["Labels"][coarseIndicies]
@@ -47,7 +49,7 @@ def coarsen(fineData, n_neighbors=10, metric='euclidean', T=0.6):
 
     return coarseData
 
-def DomSetCoarsening(fineData, T=0.6):
+def iterativeIndependentSet(fineData, T=0.6):
 
     '''
     This function takes in the adjacency matrix and creates a maximum independent set.
@@ -72,13 +74,48 @@ def DomSetCoarsening(fineData, T=0.6):
     while len(domSet) < T * n:
         coarseOptions = np.arange(n) # Create a list of possible choices
         coarseOptions[domSet] = 0 # Remove our previous independent set from the option list
+
+
         while np.count_nonzero(coarseOptions) > 0:
+            startInner = time.time()
             toPick = np.where(coarseOptions)[0] # Select all non-zero options from l
             i = np.random.choice(toPick) # Pick one of those at random
             domSet.append(i) # add it to the independent set list
             coarseOptions[i] = 0 # remove it from the list of options
-            #neigh = np.where(fineData["AdjMatrix"][i,:])[0] # Find the neighors of that random point
             neigh = fineData["KNeighbors"][i,:]
             coarseOptions[neigh] = 0 # Remove all neighbors from the options list as well
-    
+            endInner = time.time()
+            total = endInner - startInner
+
     return domSet
+
+
+"""
+def algebraicMultigrid(fineData, eta, volumes, Q=0.6):
+
+    Seeds = [] # Starts as empty list
+    futureVolumes = [] # List of future volumes
+    weights = [] # Weights
+
+
+    # Step 1: Calculate future volumes for all point in the fine data set
+    if fineData["volume"] == None:
+        # If this is the finest set, set volumes at this level to 1
+        fineData["volume"] = np.ones(fineData["Data"].shape[0])
+
+
+    #fineData["futureVolume"] = fineData["volume"] *
+
+    for i in range(fineData["Data"].shape[0]):
+        for neighbor in fineData["Kneighbors"]:
+            fineData["futureVolume"][i] *
+
+
+    # Step 2: Create seed set
+    # initial weights = distances
+
+
+
+    # Weights (for calculating future volumes
+    # Permutation Matrix
+"""
