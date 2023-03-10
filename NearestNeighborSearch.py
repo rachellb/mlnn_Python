@@ -45,4 +45,7 @@ def NearestNeighborSearch(data, n_neighbors=10, metric='euclidean', method="hnsw
         # Query dataset, k - number of the closest elements (returns 2 numpy arrays)
         neighbors, distances = p.knn_query(data, k=n_neighbors)
 
-    return neighbors
+        # Inverse of distance
+        weights = 1/distances
+
+    return neighbors, weights

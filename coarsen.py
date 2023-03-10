@@ -45,7 +45,7 @@ def coarsen(fineData, n_neighbors=10, metric='euclidean', T=0.6):
     # Calculate nearest neighbors of this new coarse dataset.
     #coarseData["KNeighbors"], coarseData["AdjMatrix"] = NearestNeighborSearch(coarseData["Data"], n_neighbors, metric)
 
-    coarseData["KNeighbors"] = NearestNeighborSearch(coarseData["Data"], n_neighbors, metric)
+    coarseData["KNeighbors"], coarseData["Weights"] = NearestNeighborSearch(coarseData["Data"], n_neighbors, metric)
 
     return coarseData
 
@@ -75,7 +75,6 @@ def iterativeIndependentSet(fineData, T=0.6):
         coarseOptions = np.arange(n) # Create a list of possible choices
         coarseOptions[domSet] = 0 # Remove our previous independent set from the option list
 
-
         while np.count_nonzero(coarseOptions) > 0:
             startInner = time.time()
             toPick = np.where(coarseOptions)[0] # Select all non-zero options from l
@@ -90,32 +89,41 @@ def iterativeIndependentSet(fineData, T=0.6):
     return domSet
 
 
-"""
-def algebraicMultigrid(fineData, eta, volumes, Q=0.6):
+
+def algebraicMultigrid(fineData, eta=2, Q=0.6):
 
     Seeds = [] # Starts as empty list
-    futureVolumes = [] # List of future volumes
-    weights = [] # Weights
 
+    # Sum weights in advance (faster than doing in the loop)
+
+    # numpy version
+    fineData["sumWeights"] = np.sum(fineData["Weights"], axis=1)
 
     # Step 1: Calculate future volumes for all point in the fine data set
-    if fineData["volume"] == None:
+    if "volume" not in fineData:
         # If this is the finest set, set volumes at this level to 1
         fineData["volume"] = np.ones(fineData["Data"].shape[0])
 
+    # Calculate the future volume ----------------------------------------
 
-    #fineData["futureVolume"] = fineData["volume"] *
+    for point in range(fineData["Data"].shape[0]):
+        for neighbor in range(fineData["KNeighbors"][point].shape[0]):
+            tempVolume = fineData["volume"][neighbor] * (fineData["Weights"][point][neighbor] / fineData["sumWeights"][
+                fineData["KNeighbors"][point][neighbor]])
+            fineData["futureVolume"][point] = fineData["futureVolume"][point] + tempVolume
 
-    for i in range(fineData["Data"].shape[0]):
-        for neighbor in fineData["Kneighbors"]:
-            fineData["futureVolume"][i] *
+            # Multiply result by this point's volume
+        fineData["futureVolume"][point] = fineData["futureVolume"][point] * fineData["volume"][point]
 
-
+    # ---------------------------------------------------------------------
     # Step 2: Create seed set
-    # initial weights = distances
+    # 2.1 - Find Dominant seeds
+    averageVolumes = np.sum(fineData["futureVolume"], axis=0)
+    averageVolumes = eta*averageVolumes
+    dominant = np.where(fineData["futureVolume"] > averageVolumes)[0]
+    Seeds.extend(dominant)
 
+    # Then need to remove these from the "fine" dataset.
 
-
-    # Weights (for calculating future volumes
-    # Permutation Matrix
-"""
+    # 2.2 - secondary seeds
+    sortVolumeIndices = np.argsort(-fineData["futureVolume"])

@@ -99,12 +99,12 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
             train_lbl = traindata["Label"]
             traindata = traindata.drop(["Label"], axis=1)
 
-            nNeighbors = NearestNeighborSearch(Ntraindata, n_neighbors)
-            pNeighbors = NearestNeighborSearch(Ptraindata, n_neighbors)
+            nNeighbors, ndistances = NearestNeighborSearch(Ntraindata, n_neighbors)
+            pNeighbors, pdistances = NearestNeighborSearch(Ptraindata, n_neighbors)
 
             # Put everything into a dictionary to keep all relevant info together
-            negativeData = {"Data": Ntraindata, "Labels": Ntrainlbl, "KNeighbors": nNeighbors}
-            positiveData = {"Data": Ptraindata, "Labels": Ptrainlbl, "KNeighbors": pNeighbors}
+            negativeData = {"Data": Ntraindata, "Labels": Ntrainlbl, "KNeighbors": nNeighbors, "Weights": ndistances}
+            positiveData = {"Data": Ptraindata, "Labels": Ptrainlbl, "KNeighbors": pNeighbors, "Weights": pdistances}
 
             level = 0
             model, posBorderData, negBorderData, max_Depth, options, Best, flag, Level_results =\
@@ -173,5 +173,5 @@ def Multilevel(data, dataName, max_ite=1, prop=0.8, multilevel=1, n_neighbors=10
 
 
 if __name__ == "__main__":
-    Multilevel(data="../Hypothyroid.csv", dataName="Hypothyroid", multilevel=1, epochs=1,
-               patienceLevel=1, label="amg", max_ite=1, batch_size=256, numBorderPoints=50)
+    Multilevel(data="../preTexas.csv", dataName="preTexas", multilevel=1, epochs=100,
+               patienceLevel=1, label="amg", max_ite=1, batch_size=256, numBorderPoints=50,Upperlim=500)
